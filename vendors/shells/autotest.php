@@ -113,9 +113,17 @@ class AutoTestShell extends Shell {
 
 	function _mapFileToTest($filename) {
 		$file = str_replace($this->params['working'] . DS, '', $filename);
-		if (preg_match('/^tests.*\.test\.php$/', $file)) {
+		if (preg_match('|^tests\\' . DS . '.*\.test\.php$|', $file)) {
 			return $filename;
 		} else if (preg_match('/.*\.php$/', $file)) {
+			if (preg_match('|^plugins\\' . DS . '|', $file)) {
+				$pluginFile = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)\\' . DS . '(.*)\.php$|', 'plugins' . DS . '$1' . DS . 'tests' . DS . 'cases' . DS . '$2.test.php', $file);
+				
+				if (file_exists($this->params['working'] . DS . $pluginFile)) {
+					return $this->params['working'] . DS . $pluginFile;
+				}
+			}
+
 			$file = preg_replace('/(.*)\.php$/', 'tests' . DS . 'cases' . DS . '$1.test.php', $file);
 			return $this->params['working'] . DS . $file;
 		} else {
@@ -161,11 +169,19 @@ class AutoTestShell extends Shell {
 	}
 
 	function _runTest($testfile) {
-		$case = str_replace($this->params['working'] . DS . 'tests' . DS . 'cases' . DS, '', $testfile);
+		$case = str_replace($this->params['working'] . DS, '', $testfile);
 		$case = str_replace('.test.php', '', $case);
 		$this->debug('Testing: ' . $case);
 
-		return shell_exec('./cake/console/cake testsuite app case ' . $case);
+		$category = 'app';
+		if (preg_match('|^plugins\\' . DS . '([^\\' . DS . ']+)|', $case, $matchs)) {
+			$category = $matchs[1];
+			$case = str_replace('plugins' . DS . $category . DS, '', $case);
+			// $case = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)|', '', $case);
+		}
+		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
+
+		return shell_exec('./cake/console/cake testsuite ' . $category . ' case ' . $case);
 	}
 
 	function _handleResults() {

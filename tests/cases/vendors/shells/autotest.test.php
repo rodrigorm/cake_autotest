@@ -42,6 +42,8 @@ class AutoTestTestCase extends CakeTestCase {
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'models' . DS . 'post.php',
+			TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'controllers' . DS . 'test_plugin_controller.php',
+			TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
 		);
 		$this->assertEqual($this->AutoTest->_findFiles(), $expected);
@@ -50,6 +52,7 @@ class AutoTestTestCase extends CakeTestCase {
 	function testFindFilesIgnore() {
 		$this->AutoTest->ignore_files = array(
 			'/models.post\.php$/', 
+			'/test_plugin/'
 		);
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
@@ -105,6 +108,12 @@ class AutoTestTestCase extends CakeTestCase {
 
 		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
 		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
+		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
+	}
+
+	function testMapFileToTestWithPluginTests() {
+		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'controllers' . DS . 'test_plugin_controller.php';
+		$expected = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
 		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
 	}
 
