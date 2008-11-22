@@ -47,6 +47,7 @@ class AutoTestShell extends Shell {
 			if ($this->tainted) {
 				$this->_rerunAllTests();
 			} else {
+				$this->out('All tests passed.');
 				$this->_hook(Hooks::all_good);
 			}
 			$this->_waitForChanges();
@@ -113,7 +114,7 @@ class AutoTestShell extends Shell {
 
 	function _mapFileToTest($filename) {
 		$file = str_replace($this->params['working'] . DS, '', $filename);
-		if (preg_match('|^tests\\' . DS . '.*\.test\.php$|', $file)) {
+		if (preg_match('|^(plugins\\' . DS . '[^\\' . DS . ']+\\' . DS . ')?tests\\' . DS . '.*\.test\.php$|', $file)) {
 			return $filename;
 		} else if (preg_match('/.*\.php$/', $file)) {
 			if (preg_match('|^plugins\\' . DS . '|', $file)) {
@@ -154,13 +155,14 @@ class AutoTestShell extends Shell {
 
 		foreach ($tests as $key => $test) {
 			if (!file_exists($test)) {
+				$this->out('File test no found: ' . str_replace($this->params['working'] . DS, '', $test));
 				continue;
 			}
 
 			$out = $this->_runTest($test);
 
 			$results[$test] = $out;
-			$this->out($out);
+			// $this->out($out);
 		}
 		$this->_hook(Hooks::ran_command);
 
@@ -188,11 +190,14 @@ class AutoTestShell extends Shell {
 		$this->files_to_test = array();
 
 		foreach ($this->results as $file => $result) {
-			$failed = preg_match('/\d+\/\d+ test cases complete: \d+ passes, \d+ fails(, \d+ exceptions)?./im', $result, $match);
-			$completed = preg_match('/\d+\/\d+ test cases complete: \d+ passes\./', $result);
+			$failed = preg_match('/\d+\/\d+ test cases complete: \d+ passes, \d+ fails(, \d+ exceptions)?./im', $result, $matchFailed);
+			$completed = preg_match('/\d+\/\d+ test cases complete: \d+ passes\./', $result, $matchCompleted);
 			
 			if ($failed) {
 				$this->files_to_test[] = $file;
+				$this->out($matchFailed[0]);
+			} else {
+				$this->out($matchCompleted[0]);
 			}
 		}
 		if (empty($this->files_to_test)) {
@@ -210,7 +215,7 @@ class AutoTestShell extends Shell {
 		do {
 			set_time_limit(100);
 			$time = $this->_findFilesToTest();
-			sleep(1);
+			// sleep(1);
 		} while (is_null($time));
 	}
 
@@ -222,6 +227,7 @@ class AutoTestShell extends Shell {
 		$this->_reset();
 		$this->_runTests();
 		if ($this->_allGood()) {
+			$this->out('All tests passed.');
 			$this->_hook(Hooks::all_good);
 		}
 	}

@@ -115,6 +115,9 @@ class AutoTestTestCase extends CakeTestCase {
 		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'controllers' . DS . 'test_plugin_controller.php';
 		$expected = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
 		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
+
+		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
+		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $file);
 	}
 
 	function testRunTests() {
