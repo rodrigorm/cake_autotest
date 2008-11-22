@@ -17,7 +17,7 @@ class Growl {
 		$message = addslashes($message);
 		$title = addslashes($title);
 
-		shell_exec("/Users/rodrigomoyle/Applications/growlnotify/growlnotify -n \"CakePHP AutoTest Shell\" --image $img -p $priority -m \"$message\" \"$title\"");
+		shell_exec("growlnotify -n \"CakePHP AutoTest Shell\" --image $img -p $priority -m \"$message\" \"$title\"");
 	}
 	
 	static function green() {
