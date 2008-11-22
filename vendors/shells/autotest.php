@@ -230,7 +230,7 @@ class AutoTestShell extends Shell {
 		do {
 			set_time_limit(100);
 			$time = $this->_findFilesToTest();
-			// sleep(1);
+			sleep(1);
 		} while (is_null($time));
 	}
 
