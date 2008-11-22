@@ -196,7 +196,7 @@ class AutoTestShell extends Shell {
 			if ($failed) {
 				$this->files_to_test[] = $file;
 				$this->out($matchFailed[0]);
-			} else {
+			} else if ($completed) {
 				$this->out($matchCompleted[0]);
 			}
 		}
