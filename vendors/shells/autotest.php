@@ -189,24 +189,39 @@ class AutoTestShell extends Shell {
 	function _handleResults() {
 		$this->files_to_test = array();
 
+		$params = array(
+			'complete'   => 0, 
+			'total'      => 0, 
+			'passes'     => 0, 
+			'fails'      => 0, 
+			'exceptions' => 0
+		);
 		foreach ($this->results as $file => $result) {
-			$failed = preg_match('/\d+\/\d+ test cases complete: \d+ passes, \d+ fails(, \d+ exceptions)?./im', $result, $matchFailed);
-			$completed = preg_match('/\d+\/\d+ test cases complete: \d+ passes\./', $result, $matchCompleted);
-			
+			$failed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes, (?<fails>\d+) fails(, (?<exceptions>\d+) exceptions)?./im', $result, $matchFailed);
+			$completed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes\./', $result, $matchCompleted);
+
+			$match = null;
+
 			if ($failed) {
 				$this->files_to_test[] = $file;
 				$this->out($matchFailed[0]);
+				$match = $matchFailed;
 			} else if ($completed) {
 				$this->out($matchCompleted[0]);
+				$match = $matchCompleted;
+			}
+			foreach ($params as $key => $value) {
+				if (isset($match[$key])) {
+					$params[$key] += (int)$match[$key];
+				}
 			}
 		}
 		if (empty($this->files_to_test)) {
 			$this->files_to_test = null;
-			$this->_hook(Hooks::green);
+			$this->_hook(Hooks::green, $params);
 		} else {
-			$hook = Hooks::red;
 			$this->tainted = true;
-			$this->_hook(Hooks::red, $this->files_to_test);
+			$this->_hook(Hooks::red, $this->files_to_test, $params);
 		}
 	}
 

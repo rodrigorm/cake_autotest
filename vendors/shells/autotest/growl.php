@@ -20,16 +20,31 @@ class Growl {
 		shell_exec("growlnotify -n \"CakePHP AutoTest Shell\" --image $img -p $priority -m \"$message\" \"$title\"");
 	}
 	
-	static function green() {
-		Growl::show('Tests passed.', 'Tests Passed');
+	static function green($params) {
+		Growl::show("Tests passed.\n" . Growl::normalize($params), 'Tests Passed');
 	}
 
-	static function red($files_to_test) {
-		Growl::show(count($files_to_test) . ' tests failed.', 'Tests Failed', -2, 'error');
+	static function red($files_to_test, $params) {
+		Growl::show(count($files_to_test) . " tests failed.\n" . Growl::normalize($params), 'Tests Failed', -2, 'error');
 	}
 
 	static function allGood() {
 		Growl::show('All tests passed.', 'Tests Passed');
+	}
+
+	static function normalize($params) {
+		$message = $params['complete'] . '/' . $params['total'] . ' test cases complete: ';
+		unset($params['complete']);
+		unset($params['total']);
+
+		foreach ($params as $key => $value) {
+			if ($value == 0) {
+				unset($params[$key]);
+				continue;
+			}
+			$params[$key] = $value . ' ' . $key;
+		}
+		return $message . implode(', ', $params) . '.';
 	}
 }
 
