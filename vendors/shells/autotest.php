@@ -143,7 +143,7 @@ class AutoTestShell extends Shell {
 		if (empty($new_time)) {
 			return;
 		}
-		$this->last_mtime =$new_time;
+		$this->last_mtime = $new_time;
 
 		$results = array();
 
