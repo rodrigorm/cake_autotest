@@ -23,7 +23,6 @@ class AutoTestShell extends Shell {
 	var $files_to_test = array();
 	var $results = null;
 	var $folder = null;
-	var $tainted = false;
 	var $ignore_files = array();
 	var $debug = false;
 	static $hooks = array();
@@ -44,12 +43,9 @@ class AutoTestShell extends Shell {
 		do {
 			set_time_limit(100);
 			$this->_getToGreen();
-			if ($this->tainted) {
-				$this->_rerunAllTests();
-			} else {
-				$this->out('All tests passed.');
-				$this->_hook(Hooks::all_good);
-			}
+
+			$this->_rerunAllTests();
+
 			$this->_waitForChanges();
 		} while (true);
 		$this->_hook(Hooks::quit);
@@ -188,6 +184,9 @@ class AutoTestShell extends Shell {
 
 	function _handleResults() {
 		$this->files_to_test = array();
+		if (empty($this->results)) {
+			return;
+		}
 
 		$params = array(
 			'complete'   => 0, 
@@ -220,7 +219,6 @@ class AutoTestShell extends Shell {
 			$this->files_to_test = null;
 			$this->_hook(Hooks::green, $params);
 		} else {
-			$this->tainted = true;
 			$this->_hook(Hooks::red, $this->files_to_test, $params);
 		}
 	}
@@ -250,7 +248,6 @@ class AutoTestShell extends Shell {
 	function _reset() {
 		$this->files_to_test = null;
 		$this->last_mtime = null;
-		$this->tainted = false;
 
 		$this->_hook(Hooks::reset);
 	}
