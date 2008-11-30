@@ -196,18 +196,19 @@ class AutoTestShell extends Shell {
 			'exceptions' => 0
 		);
 		foreach ($this->results as $file => $result) {
-			$failed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes, (?<fails>\d+) fails(, (?<exceptions>\d+) exceptions)?./im', $result, $matchFailed);
 			$completed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes\./', $result, $matchCompleted);
+			$failed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes, (?<fails>\d+) fails(, (?<exceptions>\d+) exceptions)?./im', $result, $matchFailed) || empty($matchCompleted['total']);
 
 			$match = null;
 
 			if ($failed) {
 				$this->files_to_test[] = $file;
-				$this->out($matchFailed[0]);
 				$match = $matchFailed;
 			} else if ($completed) {
-				$this->out($matchCompleted[0]);
 				$match = $matchCompleted;
+			}
+			if (!empty($match[0])) {
+				$this->out($match[0]);
 			}
 			foreach ($params as $key => $value) {
 				if (isset($match[$key])) {

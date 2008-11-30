@@ -20,7 +20,10 @@ Mock::generatePartial(
 
 define('TEST_APP', dirname(__FILE__) . DS . 'test_app');
 define('PASS_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1/1 test cases complete: 9 passes.\n");
+
 define('FAIL_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /Volumes/Sites/Cinemenu/site/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1) Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n\tin testHandleResults\n\tin AutoTestTestCase\n\tin /Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php\nFAIL->/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php->AutoTestTestCase->testHandleResults->Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n1/1 test cases complete: 10 passes, 1 fails.\n");
+
+define('ERROR_OUTPUT', "Welcome to CakePHP v1.2.0.7692 RC3 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case models/datasources/twitter_source\nPHP Parse error:  syntax error, unexpected ')', expecting '&' or T_VARIABLE in\n/Users/rodrigomoyle/Desktop/Code/mkt/natal2008/app/tests/cases/models/datasources/twitter_source.test.php on line 5");
 
 class AutoTestTestCase extends CakeTestCase {
 	function setUp() {
@@ -150,6 +153,13 @@ class AutoTestTestCase extends CakeTestCase {
 		$this->AutoTest->files_to_test = array($testfile);
 		$this->AutoTest->results = array(
 			$testfile => FAIL_OUTPUT
+		);
+		$this->AutoTest->_handleResults();
+		$this->assertEqual($this->AutoTest->files_to_test, array($testfile));
+
+		$this->AutoTest->files_to_test = array($testfile);
+		$this->AutoTest->results = array(
+			$testfile => ERROR_OUTPUT
 		);
 		$this->AutoTest->_handleResults();
 		$this->assertEqual($this->AutoTest->files_to_test, array($testfile));
