@@ -52,7 +52,7 @@ class AutoTestShell extends Shell {
 	}
 
 	function _findFiles() {
-		$files = $this->folder->findRecursive('^[^\.].*\.php');
+		$files = $this->folder->findRecursive('^[^\\.].*\.php');
 		if (!empty($this->ignore_files)) {
 			foreach ($files as $key => $file) {
 				foreach ($this->ignore_files as $ignore) {
@@ -110,22 +110,56 @@ class AutoTestShell extends Shell {
 
 	function _mapFileToTest($filename) {
 		$file = str_replace($this->params['working'] . DS, '', $filename);
-		if (preg_match('|^(plugins\\' . DS . '[^\\' . DS . ']+\\' . DS . ')?tests\\' . DS . '.*\.test\.php$|', $file)) {
+
+		if (preg_match('|^(plugins\\' . DS . '[^\\' . DS . ']+\\' . DS . ')?tests\\' . DS . '.*\\.test\\.php$|', $file)) {
 			return $filename;
-		} else if (preg_match('/.*\.php$/', $file)) {
+		}
+
+		preg_match('/^([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+)(\\' . DS . '([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+))?/i', $file, $match);
+		$plugin = null;
+		$type = $match[1];
+		$subType = $match[2];
+		
+		if ($type == 'plugins') {
+			$plugin = $subType;
+			$type = $match[4];
+			$subType = $match[5];
+		}
+		
+		$dirname = dirname($file);
+		$basename = basename($file, '.php');
+
+		$path = $type;
+		if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
+			$path = $subType;
+		}
+		$path = 'tests' . DS . 'cases' . DS . $path;
+		if (!empty($plugin)) {
+			$path = 'plugins' . DS . $plugin . DS . $path;
+		}
+
+		return $this->params['working'] . DS . $path . DS . $basename . '.test.php';
+
+		/*if (preg_match('|^(plugins\\' . DS . '[^\\' . DS . ']+\\' . DS . ')?tests\\' . DS . '.*\\.test\\.php$|', $file)) {
+			return $filename;
+		} else if (preg_match('/.*\\.php$/', $file)) {
+			// if (preg_match('/^(plugins\\' . DS . '.*\\' . DS . ')?(controllers\\' . DS . '(components)|models\\' . DS . '(behaviors))(.*)\\.php$/', $file, $match)) {
+			// 	$file = $match[1] . 'tests' . DS . 'cases' . DS . $match[3] . $match[5] . '.test.php';
+			// 	return $this->params['working'] . DS . $file;
+			// }
 			if (preg_match('|^plugins\\' . DS . '|', $file)) {
-				$pluginFile = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)\\' . DS . '(.*)\.php$|', 'plugins' . DS . '$1' . DS . 'tests' . DS . 'cases' . DS . '$2.test.php', $file);
+				$pluginFile = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)\\' . DS . '(.*)\\.php$|', 'plugins' . DS . '$1' . DS . 'tests' . DS . 'cases' . DS . '$2.test.php', $file);
 				
 				if (file_exists($this->params['working'] . DS . $pluginFile)) {
 					return $this->params['working'] . DS . $pluginFile;
 				}
 			}
 
-			$file = preg_replace('/(.*)\.php$/', 'tests' . DS . 'cases' . DS . '$1.test.php', $file);
+			$file = preg_replace('/(.*)\\.php$/', 'tests' . DS . 'cases' . DS . '$1.test.php', $file);
 			return $this->params['working'] . DS . $file;
 		} else {
 			return null;
-		}
+		}*/
 	}
 
 	function _getToGreen() {
@@ -196,7 +230,7 @@ class AutoTestShell extends Shell {
 			'exceptions' => 0
 		);
 		foreach ($this->results as $file => $result) {
-			$completed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes\./', $result, $matchCompleted);
+			$completed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes\\./', $result, $matchCompleted);
 			$failed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes, (?<fails>\d+) fails(, (?<exceptions>\d+) exceptions)?./im', $result, $matchFailed) || empty($matchCompleted['total']);
 
 			$match = null;

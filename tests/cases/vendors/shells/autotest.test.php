@@ -42,6 +42,9 @@ class AutoTestTestCase extends CakeTestCase {
 	}
 
 	function testFindFiles() {
+		$this->AutoTest->ignore_files = array(
+			'/one(\\.test)?\\.php$/'
+		);
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'models' . DS . 'post.php',
@@ -49,19 +52,22 @@ class AutoTestTestCase extends CakeTestCase {
 			TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
 		);
-		$this->assertEqual($this->AutoTest->_findFiles(), $expected);
+		$result = $this->AutoTest->_findFiles();
+		$this->assertEqual($result, $expected);
 	}
 
 	function testFindFilesIgnore() {
 		$this->AutoTest->ignore_files = array(
 			'/models.post\.php$/', 
-			'/test_plugin/'
+			'/test_plugin/',
+			'/one(\\.test)?\\.php$/'
 		);
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
 		);
-		$this->assertEqual($this->AutoTest->_findFiles(), $expected);
+		$result = $this->AutoTest->_findFiles();
+		$this->assertEqual($result, $expected);
 	}
 
 	function testFindFilesToTest() {
@@ -111,6 +117,24 @@ class AutoTestTestCase extends CakeTestCase {
 
 		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
 		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
+		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
+	}
+
+	function testMapBehaviorToTest() {
+		$file = TEST_APP . DS . 'models' . DS . 'behaviors' . DS . 'one.php';
+		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'behaviors' . DS . 'one.test.php';
+		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
+	}
+
+	function testMapComponentToTest() {
+		$file = TEST_APP . DS . 'controllers' . DS . 'components' . DS . 'one.php';
+		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'components' . DS . 'one.test.php';
+		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
+	}
+
+	function testMapHelperToTest() {
+		$file = TEST_APP . DS . 'views' . DS . 'helpers' . DS . 'one.php';
+		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'helpers' . DS . 'one.test.php';
 		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
 	}
 
