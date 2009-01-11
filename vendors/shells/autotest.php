@@ -115,10 +115,13 @@ class AutoTestShell extends Shell {
 			return $filename;
 		}
 
-		preg_match('/^([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+)(\\' . DS . '([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+))?/i', $file, $match);
 		$plugin = null;
-		$type = $match[1];
-		$subType = $match[2];
+		$type = null;
+		$subType = null;
+		if (preg_match('/^([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+)(\\' . DS . '([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+))?/i', $file, $match)) {
+			$type = $match[1];
+			$subType = $match[2];
+		}
 		
 		if ($type == 'plugins') {
 			$plugin = $subType;
@@ -129,37 +132,18 @@ class AutoTestShell extends Shell {
 		$dirname = dirname($file);
 		$basename = basename($file, '.php');
 
-		$path = $type;
 		if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
-			$path = $subType;
+			$type = $subType;
 		}
-		$path = 'tests' . DS . 'cases' . DS . $path;
+		$path = 'tests' . DS . 'cases';
+		if (!empty($type)) {
+			$path .= DS . $type;
+		}
 		if (!empty($plugin)) {
 			$path = 'plugins' . DS . $plugin . DS . $path;
 		}
 
 		return $this->params['working'] . DS . $path . DS . $basename . '.test.php';
-
-		/*if (preg_match('|^(plugins\\' . DS . '[^\\' . DS . ']+\\' . DS . ')?tests\\' . DS . '.*\\.test\\.php$|', $file)) {
-			return $filename;
-		} else if (preg_match('/.*\\.php$/', $file)) {
-			// if (preg_match('/^(plugins\\' . DS . '.*\\' . DS . ')?(controllers\\' . DS . '(components)|models\\' . DS . '(behaviors))(.*)\\.php$/', $file, $match)) {
-			// 	$file = $match[1] . 'tests' . DS . 'cases' . DS . $match[3] . $match[5] . '.test.php';
-			// 	return $this->params['working'] . DS . $file;
-			// }
-			if (preg_match('|^plugins\\' . DS . '|', $file)) {
-				$pluginFile = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)\\' . DS . '(.*)\\.php$|', 'plugins' . DS . '$1' . DS . 'tests' . DS . 'cases' . DS . '$2.test.php', $file);
-				
-				if (file_exists($this->params['working'] . DS . $pluginFile)) {
-					return $this->params['working'] . DS . $pluginFile;
-				}
-			}
-
-			$file = preg_replace('/(.*)\\.php$/', 'tests' . DS . 'cases' . DS . '$1.test.php', $file);
-			return $this->params['working'] . DS . $file;
-		} else {
-			return null;
-		}*/
 	}
 
 	function _getToGreen() {
