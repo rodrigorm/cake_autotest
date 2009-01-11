@@ -130,18 +130,29 @@ class AutoTestShell extends Shell {
 		}
 		
 		$dirname = dirname($file);
+		if ($dirname == '.') {
+			$dirname = null;
+		}
 		$basename = basename($file, '.php');
-
-		if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
-			$type = $subType;
-		}
 		$path = 'tests' . DS . 'cases';
-		if (!empty($type)) {
-			$path .= DS . $type;
+
+		if ($type === 'controllers' || $type === 'models' || $type === 'views') {
+			if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
+				$type = $subType;
+			}
+
+			if (!empty($type)) {
+				$path .= DS . $type;
+			}
+			if (!empty($plugin)) {
+				$path = 'plugins' . DS . $plugin . DS . $path;
+			}
+		} else {
+			if (!empty($dirname)) {
+				$path .= DS . $dirname;
+			}
 		}
-		if (!empty($plugin)) {
-			$path = 'plugins' . DS . $plugin . DS . $path;
-		}
+		
 
 		return $this->params['working'] . DS . $path . DS . $basename . '.test.php';
 	}
