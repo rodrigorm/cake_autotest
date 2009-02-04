@@ -196,8 +196,7 @@ class AutoTestShell extends Shell {
 			// $case = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)|', '', $case);
 		}
 		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
-
-		return shell_exec('./cake/console/cake testsuite ' . $category . ' case ' . $case);
+		return shell_exec(CAKE.'console'.DS.'cake testsuite ' . $category . ' case ' . $case);
 	}
 
 	function _handleResults() {
