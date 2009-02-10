@@ -17,7 +17,6 @@ class Hooks {
 	private function __construct() {}
 }
 //Configure::buildPaths('pluginPath');
-		var_dump(Configure::corePaths('cake'));
 class AutoTestShell extends Shell {
 	var $last_mtime = null;
 	var $files_to_test = array();
