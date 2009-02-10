@@ -22,23 +22,26 @@ class AutoTestShell extends Shell {
 	var $files_to_test = array();
 	var $results = null;
 	var $folder = null;
-	var $ignore_files = array('/autotest/');
+	var $ignore_files = array();
 	var $debug = false;
 	static $hooks = array();
 
 	function main() {
 		App::import('Core', 'Folder');
-		//Configure::read('pluginPaths')
-		
 		$this->folder = new Folder($this->params['working']);
-
-		if (file_exists('./.autotest')) {
-			include('./.autotest');
+		$this->buildPaths();
+		if (file_exists($this->params['working'].DS.'.autotest')) {
+			include($this->params['working'].DS.'.autotest');
 		}
-
 		$this->run();
 	}
-
+	function buildPaths(){
+		$this->paths = array(
+			'console' => array_pop(Configure::corePaths('cake')).'console'.DS.'cake',
+			'img' =>  array_pop(Configure::read('pluginPaths')).'cake_autotest'.DS.'vendors'.DS.'img'.DS,
+			'libs' =>  array_pop(Configure::read('pluginPaths')).'cake_autotest'.DS.'vendors'.DS.'shells'.DS.'autotest'.DS
+		);
+	}
 	function run() {
 		$this->_hook(Hooks::initialize);
 		do {
@@ -198,7 +201,7 @@ class AutoTestShell extends Shell {
 		}
 		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
 		
-		return shell_exec(array_pop(Configure::corePaths('cake')).'console'.DS.'cake -app '.$this->params['working'].' testsuite ' . $category . ' case ' . $case);
+		return shell_exec($this->paths['console'].' -app '.$this->params['working'].' testsuite ' . $category . ' case ' . $case);
 	}
 
 	function _handleResults() {
@@ -305,5 +308,4 @@ class AutoTestShell extends Shell {
 		}
 	}
 }
-include('autotest/libnotify.php');
 ?>
