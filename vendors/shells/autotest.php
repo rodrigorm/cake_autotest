@@ -1,47 +1,46 @@
 <?php
-/**
-* 
-*/
 class Hooks {
-	const all_good = 'all_good';
-	const initialize = 'initialize';
-	const interrupt = 'interrupt';
-	const quit = 'quit';
+	const all_good    = 'all_good';
+	const initialize  = 'initialize';
+	const interrupt   = 'interrupt';
+	const quit        = 'quit';
 	const ran_command = 'ran_command';
-	const reset = 'reset';
+	const reset       = 'reset';
 	const run_command = 'run_command';
-	const waiting = 'waiting';
-	const green = 'green';
-	const red = 'red';
+	const waiting     = 'waiting';
+	const green       = 'green';
+	const red         = 'red';
 	
 	private function __construct() {}
 }
-//Configure::buildPaths('pluginPath');
+
 class AutoTestShell extends Shell {
-	var $last_mtime = null;
+	var $last_mtime    = null;
 	var $files_to_test = array();
-	var $results = null;
-	var $folder = null;
-	var $ignore_files = array();
-	var $debug = false;
-	static $hooks = array();
+	var $results       = null;
+	var $folder        = null;
+	var $ignore_files  = array();
+	var $debug         = false;
+	static $hooks      = array();
 
 	function main() {
 		App::import('Core', 'Folder');
 		$this->folder = new Folder($this->params['working']);
 		$this->buildPaths();
-		if (file_exists($this->params['working'].DS.'.autotest')) {
-			include($this->params['working'].DS.'.autotest');
+		if (file_exists($this->params['working'] . DS . '.autotest')) {
+			include($this->params['working'] . DS . '.autotest');
 		}
 		$this->run();
 	}
+
 	function buildPaths(){
 		$this->paths = array(
-			'console' => array_pop(Configure::corePaths('cake')).'console'.DS.'cake',
-			'img' =>  array_pop(Configure::read('pluginPaths')).'cake_autotest'.DS.'vendors'.DS.'img'.DS,
-			'libs' =>  array_pop(Configure::read('pluginPaths')).'cake_autotest'.DS.'vendors'.DS.'shells'.DS.'autotest'.DS
+			'console' => array_pop(Configure::corePaths('cake')) . 'console' . DS . 'cake',
+			'img'     => array_pop(Configure::read('pluginPaths')) . 'cake_autotest' . DS . 'vendors' . DS . 'img' . DS,
+			'libs'    => array_pop(Configure::read('pluginPaths')) . 'cake_autotest' . DS . 'vendors' . DS . 'shells' . DS . 'autotest' . DS
 		);
 	}
+
 	function run() {
 		$this->_hook(Hooks::initialize);
 		do {
