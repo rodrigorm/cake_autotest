@@ -118,13 +118,13 @@ class AutoTestShell extends Shell {
 			return $filename;
 		}
 
-		$plugin = null;
-		$type = null;
-		$subType = null;
-		if (preg_match('/^([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+)(\\' . DS . '([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+))?/i', $file, $match)) {
-			$type = $match[1];
-			$subType = $match[2];
+		preg_match('/^([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+)(\\' . DS . '([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+))?/i', $file, $match);
+		if (empty($match)) {
+			return $this->params['working'] . DS . str_replace('.php', '.test.php', $file);
 		}
+		$plugin = null;
+		$type = $match[1];
+		$subType = $match[2];
 		
 		if ($type == 'plugins') {
 			$plugin = $subType;
@@ -133,29 +133,16 @@ class AutoTestShell extends Shell {
 		}
 		
 		$dirname = dirname($file);
-		if ($dirname == '.') {
-			$dirname = null;
-		}
 		$basename = basename($file, '.php');
-		$path = 'tests' . DS . 'cases';
 
-		if ($type === 'controllers' || $type === 'models' || $type === 'views') {
-			if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
-				$type = $subType;
-			}
-
-			if (!empty($type)) {
-				$path .= DS . $type;
-			}
-			if (!empty($plugin)) {
-				$path = 'plugins' . DS . $plugin . DS . $path;
-			}
-		} else {
-			if (!empty($dirname)) {
-				$path .= DS . $dirname;
-			}
+		$path = $type;
+		if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
+			$path = $subType;
 		}
-		
+		$path = 'tests' . DS . 'cases' . DS . $path;
+		if (!empty($plugin)) {
+			$path = 'plugins' . DS . $plugin . DS . $path;
+		}
 
 		return $this->params['working'] . DS . $path . DS . $basename . '.test.php';
 	}
