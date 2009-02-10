@@ -16,19 +16,20 @@ class Hooks {
 	
 	private function __construct() {}
 }
-
+//Configure::buildPaths('pluginPath');
 
 class AutoTestShell extends Shell {
 	var $last_mtime = null;
 	var $files_to_test = array();
 	var $results = null;
 	var $folder = null;
-	var $ignore_files = array();
+	var $ignore_files = array('/autotest/');
 	var $debug = false;
 	static $hooks = array();
 
 	function main() {
 		App::import('Core', 'Folder');
+		//Configure::read('pluginPaths')
 		$this->folder = new Folder($this->params['working']);
 
 		if (file_exists('./.autotest')) {
@@ -55,6 +56,7 @@ class AutoTestShell extends Shell {
 		$files = $this->folder->findRecursive('^[^\\.].*\.php');
 		if (!empty($this->ignore_files)) {
 			foreach ($files as $key => $file) {
+				var_dump($file);
 				foreach ($this->ignore_files as $ignore) {
 					if (preg_match($ignore, $file)) {
 						unset($files[$key]);
@@ -303,4 +305,5 @@ class AutoTestShell extends Shell {
 		}
 	}
 }
+include('autotest/libnotify.php');
 ?>
