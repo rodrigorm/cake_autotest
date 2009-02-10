@@ -17,7 +17,7 @@ class Hooks {
 	private function __construct() {}
 }
 //Configure::buildPaths('pluginPath');
-
+		var_dump(Configure::corePaths('cake'));
 class AutoTestShell extends Shell {
 	var $last_mtime = null;
 	var $files_to_test = array();
@@ -30,6 +30,7 @@ class AutoTestShell extends Shell {
 	function main() {
 		App::import('Core', 'Folder');
 		//Configure::read('pluginPaths')
+		
 		$this->folder = new Folder($this->params['working']);
 
 		if (file_exists('./.autotest')) {
@@ -56,7 +57,6 @@ class AutoTestShell extends Shell {
 		$files = $this->folder->findRecursive('^[^\\.].*\.php');
 		if (!empty($this->ignore_files)) {
 			foreach ($files as $key => $file) {
-				var_dump($file);
 				foreach ($this->ignore_files as $ignore) {
 					if (preg_match($ignore, $file)) {
 						unset($files[$key]);
@@ -198,7 +198,8 @@ class AutoTestShell extends Shell {
 			// $case = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)|', '', $case);
 		}
 		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
-		return shell_exec(CAKE.'console'.DS.'cake testsuite ' . $category . ' case ' . $case);
+		var_dump(array_pop(Configure::corePaths('cake')).'console'.DS.'cake testsuite ' . $category . ' case ' . $case);
+		return shell_exec(array_pop(Configure::corePaths('cake')).'console'.DS.'cake -app '.$this->params['working'].' testsuite ' . $category . ' case ' . $case);
 	}
 
 	function _handleResults() {
