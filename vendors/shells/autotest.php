@@ -16,8 +16,7 @@ class Hooks {
 	
 	private function __construct() {}
 }
-
-
+//Configure::buildPaths('pluginPath');
 class AutoTestShell extends Shell {
 	var $last_mtime = null;
 	var $files_to_test = array();
@@ -30,14 +29,19 @@ class AutoTestShell extends Shell {
 	function main() {
 		App::import('Core', 'Folder');
 		$this->folder = new Folder($this->params['working']);
-
-		if (file_exists('./.autotest')) {
-			include('./.autotest');
+		$this->buildPaths();
+		if (file_exists($this->params['working'].DS.'.autotest')) {
+			include($this->params['working'].DS.'.autotest');
 		}
-
 		$this->run();
 	}
-
+	function buildPaths(){
+		$this->paths = array(
+			'console' => array_pop(Configure::corePaths('cake')).'console'.DS.'cake',
+			'img' =>  array_pop(Configure::read('pluginPaths')).'cake_autotest'.DS.'vendors'.DS.'img'.DS,
+			'libs' =>  array_pop(Configure::read('pluginPaths')).'cake_autotest'.DS.'vendors'.DS.'shells'.DS.'autotest'.DS
+		);
+	}
 	function run() {
 		$this->_hook(Hooks::initialize);
 		do {
@@ -207,8 +211,8 @@ class AutoTestShell extends Shell {
 			// $case = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)|', '', $case);
 		}
 		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
-
-		return shell_exec('./cake/console/cake testsuite ' . $category . ' case ' . $case);
+		
+		return shell_exec($this->paths['console'].' -app '.$this->params['working'].' testsuite ' . $category . ' case ' . $case);
 	}
 
 	function _handleResults() {
