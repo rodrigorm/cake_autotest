@@ -170,7 +170,7 @@ class AutoTestShell extends Shell {
 
 		foreach ($tests as $key => $test) {
 			if (!file_exists($test)) {
-				$this->out('File test no found: ' . str_replace($this->params['working'] . DS, '', $test));
+				$this->out('File test not found: ' . str_replace($this->params['working'] . DS, '', $test));
 				continue;
 			}
 
