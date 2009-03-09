@@ -128,6 +128,9 @@ class AutoTestShell extends Shell {
 		
 		if ($type == 'plugins') {
 			$plugin = $subType;
+			if (empty($match[4])) {
+				return null;
+			}
 			$type = $match[4];
 			$subType = $match[5];
 		}
@@ -177,7 +180,6 @@ class AutoTestShell extends Shell {
 			$out = $this->_runTest($test);
 
 			$results[$test] = $out;
-			// $this->out($out);
 		}
 		$this->_hook(Hooks::ran_command);
 
