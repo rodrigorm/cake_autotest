@@ -128,6 +128,9 @@ class AutoTestShell extends Shell {
 		
 		if ($type == 'plugins') {
 			$plugin = $subType;
+			if (empty($match[4])) {
+				return null;
+			}
 			$type = $match[4];
 			$subType = $match[5];
 		}
@@ -170,14 +173,13 @@ class AutoTestShell extends Shell {
 
 		foreach ($tests as $key => $test) {
 			if (!file_exists($test)) {
-				$this->out('File test no found: ' . str_replace($this->params['working'] . DS, '', $test));
+				$this->out('File test not found: ' . str_replace($this->params['working'] . DS, '', $test));
 				continue;
 			}
 
 			$out = $this->_runTest($test);
 
 			$results[$test] = $out;
-			// $this->out($out);
 		}
 		$this->_hook(Hooks::ran_command);
 
