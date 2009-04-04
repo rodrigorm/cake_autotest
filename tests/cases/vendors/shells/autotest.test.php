@@ -118,14 +118,6 @@ class AutoTestTestCase extends CakeTestCase {
 		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
 		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
 		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-
-		$file = TEST_APP . DS . 'app_controller.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'app_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-
-		$file = TEST_APP . DS . 'vendors' . DS . 'Lib' . DS . 'Class.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'vendors' . DS . 'Lib' . DS . 'Class.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
 	}
 
 	function testMapBehaviorToTest() {
