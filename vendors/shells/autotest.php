@@ -19,11 +19,14 @@ class AutoTestShell extends Shell {
 	var $files_to_test = array();
 	var $results       = null;
 	var $folder        = null;
-	var $ignore_files  = array();
 	static $hooks      = array();
 
 	public $settings = array(
 		'debug' => false,
+		'ignorePatterns' => array(
+			'/index\.php/',
+			'/(config|locale|tmp|tests|webroot)\//'
+		),
 		'notify' => null
 	);
 
@@ -75,17 +78,16 @@ class AutoTestShell extends Shell {
 	}
 
 	function _findFiles() {
-		$files = $this->folder->findRecursive('^[^\\.].*\.php');
-		if (!empty($this->ignore_files)) {
+		$files = $this->folder->findRecursive('.*\.php$');
+		if (!empty($this->settings['ignorePatterns'])) {
 			foreach ($files as $key => $file) {
-				foreach ($this->ignore_files as $ignore) {
+				foreach ($this->settings['ignorePatterns'] as $ignore) {
 					if (preg_match($ignore, $file)) {
 						unset($files[$key]);
 					}
 				}
 			}
 		}
-
 		return array_values($files);
 	}
 
@@ -126,7 +128,7 @@ class AutoTestShell extends Shell {
 			$files = $this->files_to_test;
 		}
 		$files = array_map(array(&$this, '_mapFileToTest'), $files);
-		$files = array_unique($files);
+		$files = array_filter(array_unique($files));
 
 		return $files;
 	}
@@ -190,7 +192,6 @@ class AutoTestShell extends Shell {
 		$results = array();
 
 		$tests = $this->_mapFilesToTests();
-
 		foreach ($tests as $key => $test) {
 			if (!file_exists($test)) {
 				$this->out('File test not found: ' . str_replace($this->params['working'] . DS, '', $test));
