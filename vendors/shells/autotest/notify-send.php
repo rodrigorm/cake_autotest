@@ -1,5 +1,5 @@
 <?php
-class Libnotify {
+class NotifySend {
 	static $statuses = array(
 		'success' => 'test-pass-icon.png',
 		'error'   => 'test-error-icon.png',
@@ -7,30 +7,30 @@ class Libnotify {
 	);
 
 	static function show($message, $title = null, $priority = 0, $status = 'success') {
-    
-		$img = array_pop(Configure::read('pluginPaths'));
-		if (!empty(Libnotify::$statuses[$status])) {
-			$img .= 'cake_autotest'.DS.'vendors'.DS.'img'.DS.Libnotify::$statuses[$status];
+
+		$img = '';
+		if (!empty(NotifySend::$statuses[$status])) {
+			$img = dirname(dirname(dirname(__FILE__))) . DS . 'img' . DS . NotifySend::$statuses[$status];
 		}
 		if (empty($title)) {
 			$title = $message;
 		}
 		$message = addslashes($message);
-		$title = addslashes($title);
+		$title = APP_DIR . ': ' . addslashes($title);
 
 		shell_exec("notify-send -i $img \"{$title}\" \"{$message}\"");
 	}
-	
+
 	static function green($params) {
-		Libnotify::show("Tests passed.\n" . Libnotify::normalize($params), 'Tests Passed');
+		NotifySend::show("Tests passed.\n" . NotifySend::normalize($params), 'Tests Passed');
 	}
 
 	static function red($files_to_test, $params) {
-		Libnotify::show(count($files_to_test) . " tests failed.\n" . Libnotify::normalize($params), 'Tests Failed', -2, 'error');
+		NotifySend::show(count($files_to_test) . " tests failed.\n" . NotifySend::normalize($params), 'Tests Failed', -2, 'error');
 	}
 
 	static function allGood() {
-		Libnotify::show('All tests passed.', 'Tests Passed');
+		NotifySend::show('All tests passed.', 'Tests Passed');
 	}
 
 	static function normalize($params) {
@@ -49,7 +49,7 @@ class Libnotify {
 	}
 }
 
-AutoTestShell::addHook(Hooks::green, array('Libnotify', 'green'));
-AutoTestShell::addHook(Hooks::red, array('Libnotify', 'red'));
-AutoTestShell::addHook(Hooks::all_good, array('Libnotify', 'allGood'));
+AutoTestShell::addHook(Hooks::green, array('NotifySend', 'green'));
+AutoTestShell::addHook(Hooks::red, array('NotifySend', 'red'));
+AutoTestShell::addHook(Hooks::all_good, array('NotifySend', 'allGood'));
 ?>

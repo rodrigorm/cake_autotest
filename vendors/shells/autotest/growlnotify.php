@@ -1,5 +1,5 @@
 <?php
-class Growl {
+class GrowlNotify {
 	static $statuses = array(
 		'success' => '/Applications/Mail.app/Contents/Resources/status-available.tiff',
 		'error'   => '/Applications/Mail.app/Contents/Resources/redlight.tiff',
@@ -8,28 +8,28 @@ class Growl {
 
 	static function show($message, $title = null, $priority = 0, $status = 'success') {
 		$img = null;
-		if (!empty(Growl::$statuses[$status])) {
-			$img = Growl::$statuses[$status];
+		if (!empty(GrowlNotify::$statuses[$status])) {
+			$img = GrowlNotify::$statuses[$status];
 		}
 		if (empty($title)) {
 			$title = $message;
 		}
 		$message = addslashes($message);
-		$title = addslashes($title);
+		$title = APP_DIR . ': ' . addslashes($title);
 
 		shell_exec("growlnotify -n \"CakePHP AutoTest Shell\" --image $img -p $priority -m \"$message\" \"$title\"");
 	}
-	
+
 	static function green($params) {
-		Growl::show("Tests passed.\n" . Growl::normalize($params), 'Tests Passed');
+		GrowlNotify::show("Tests passed.\n" . GrowlNotify::normalize($params), 'Tests Passed');
 	}
 
 	static function red($files_to_test, $params) {
-		Growl::show(count($files_to_test) . " tests failed.\n" . Growl::normalize($params), 'Tests Failed', -2, 'error');
+		GrowlNotify::show(count($files_to_test) . " tests failed.\n" . GrowlNotify::normalize($params), 'Tests Failed', -2, 'error');
 	}
 
 	static function allGood() {
-		Growl::show('All tests passed.', 'Tests Passed');
+		GrowlNotify::show('All tests passed.', 'Tests Passed');
 	}
 
 	static function normalize($params) {
@@ -48,7 +48,7 @@ class Growl {
 	}
 }
 
-AutoTestShell::addHook(Hooks::green, array('Growl', 'green'));
-AutoTestShell::addHook(Hooks::red, array('Growl', 'red'));
-AutoTestShell::addHook(Hooks::all_good, array('Growl', 'allGood'));
+AutoTestShell::addHook(Hooks::green, array('GrowlNotify', 'green'));
+AutoTestShell::addHook(Hooks::red, array('GrowlNotify', 'red'));
+AutoTestShell::addHook(Hooks::all_good, array('GrowlNotify', 'allGood'));
 ?>

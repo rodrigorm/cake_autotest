@@ -10,7 +10,7 @@ class Hooks {
 	const waiting     = 'waiting';
 	const green       = 'green';
 	const red         = 'red';
-	
+
 	private function __construct() {}
 }
 
@@ -20,8 +20,12 @@ class AutoTestShell extends Shell {
 	var $results       = null;
 	var $folder        = null;
 	var $ignore_files  = array();
-	var $debug         = false;
 	static $hooks      = array();
+
+	public $settings = array(
+		'debug' => false,
+		'notify' => null
+	);
 
 	function main() {
 		App::import('Core', 'Folder');
@@ -30,14 +34,30 @@ class AutoTestShell extends Shell {
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
 		}
+		if (!empty($this->params['notify'])) {
+			$this->settings['notify'] = $this->params['notify'];
+		} elseif (DS === '/') {
+			$Folder = new Folder(dirname(__FILE__) . '/autotest');
+			$notifiers = $Folder->find('.*\.php$');
+			foreach($notifiers as $notifyProg) {
+				$notifyProg = str_replace('.php', '', $notifyProg);
+				system('which ' . $notifyProg, $return);
+				if ($return) {
+					continue;
+				}
+				$this->settings['notify'] = $notifyProg;
+				break;
+			}
+		}
+		if ($this->settings['notify']) {
+			include('autotest/' . $this->settings['notify'] . '.php');
+		}
 		$this->run();
 	}
 
 	function buildPaths(){
 		$this->paths = array(
 			'console' => array_pop(Configure::corePaths('cake')) . 'console' . DS . 'cake',
-			'img'     => array_pop(Configure::read('pluginPaths')) . 'cake_autotest' . DS . 'vendors' . DS . 'img' . DS,
-			'libs'    => array_pop(Configure::read('pluginPaths')) . 'cake_autotest' . DS . 'vendors' . DS . 'shells' . DS . 'autotest' . DS
 		);
 	}
 
@@ -125,7 +145,7 @@ class AutoTestShell extends Shell {
 		$plugin = null;
 		$type = $match[1];
 		$subType = $match[2];
-		
+
 		if ($type == 'plugins') {
 			$plugin = $subType;
 			if (empty($match[4])) {
@@ -134,7 +154,7 @@ class AutoTestShell extends Shell {
 			$type = $match[4];
 			$subType = $match[5];
 		}
-		
+
 		$dirname = dirname($file);
 		$basename = basename($file, '.php');
 
@@ -199,7 +219,7 @@ class AutoTestShell extends Shell {
 			// $case = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)|', '', $case);
 		}
 		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
-		
+
 		return shell_exec($this->paths['console'].' -app '.$this->params['working'].' testsuite ' . $category . ' case ' . $case);
 	}
 
@@ -210,10 +230,10 @@ class AutoTestShell extends Shell {
 		}
 
 		$params = array(
-			'complete'   => 0, 
-			'total'      => 0, 
-			'passes'     => 0, 
-			'fails'      => 0, 
+			'complete'   => 0,
+			'total'      => 0,
+			'passes'     => 0,
+			'fails'      => 0,
 			'exceptions' => 0
 		);
 		foreach ($this->results as $file => $result) {
@@ -275,7 +295,7 @@ class AutoTestShell extends Shell {
 	}
 
 	function debug($message) {
-		if (!$this->debug) {
+		if (!$this->settings['debug']) {
 			return;
 		}
 		$this->out($message);
@@ -301,7 +321,7 @@ class AutoTestShell extends Shell {
 		if (empty(AutoTestShell::$hooks[$hook])) {
 			return false;
 		}
-		
+
 		foreach (AutoTestShell::$hooks[$hook] as $callback) {
 			call_user_func_array($callback, $params);
 		}
