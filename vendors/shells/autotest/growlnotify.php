@@ -12,20 +12,20 @@ class GrowlNotify {
 			$img = GrowlNotify::$statuses[$status];
 		}
 		if (empty($title)) {
-			$title = $message;
+			$title = APP_DIR;
 		}
 		$message = addslashes($message);
-		$title = APP_DIR . ': ' . addslashes($title);
+		$title = addslashes($title);
 
 		shell_exec("growlnotify -n \"CakePHP AutoTest Shell\" --image $img -p $priority -m \"$message\" \"$title\"");
 	}
 
 	static function green($params) {
-		GrowlNotify::show("Tests passed.\n" . GrowlNotify::normalize($params), 'Tests Passed');
+		GrowlNotify::show(GrowlNotify::normalize($params), 'Tests Passed');
 	}
 
 	static function red($files_to_test, $params) {
-		GrowlNotify::show(count($files_to_test) . " tests failed.\n" . GrowlNotify::normalize($params), 'Tests Failed', -2, 'error');
+		GrowlNotify::show(GrowlNotify::normalize($params), $fails . ' Fails', -2, 'error');
 	}
 
 	static function allGood() {
@@ -33,18 +33,28 @@ class GrowlNotify {
 	}
 
 	static function normalize($params) {
-		$message = $params['complete'] . '/' . $params['total'] . ' test cases complete: ';
+		if (!isset($params['complete'])) {
+			$params['complete'] = 0;
+		}
+		$message = $params['complete'] . '/' . $params['total'];
 		unset($params['complete']);
 		unset($params['total']);
 
 		foreach ($params as $key => $value) {
-			if ($value == 0) {
+			if ($value === 0) {
 				unset($params[$key]);
 				continue;
 			}
-			$params[$key] = $value . ' ' . $key;
+			if (is_array($value)) {
+				$params[$key] = '';
+				foreach ($value as $k => $v) {
+					$params[$key] .= str_replace(APP, '', $k) . " $v\n";
+				}
+			} else {
+				$params[$key] = $value . ' ' . $key;
+			}
 		}
-		return $message . implode(', ', $params) . '.';
+		return $message . "\n" . implode($params, "\n");
 	}
 }
 
