@@ -18,22 +18,21 @@ class AutoTestShell extends Shell {
 	var $last_mtime    = null;
 	var $files_to_test = array();
 	var $results       = null;
-	var $folder        = null;
 	static $hooks      = array();
 
 	public $settings = array(
+		'interval' => 0.01, // 0.05 minutes = every 3s
 		'debug' => false,
 		'ignorePatterns' => array(
 			'/index\.php/',
 			'/(config|locale|tmp|tests|webroot)\//'
 		),
-		'notify' => null
+		'notify' => null,
+		'checkAllOnStart' => true
 	);
 
 	function main() {
 		App::import('Core', 'Folder');
-		$this->folder = new Folder($this->params['working']);
-		$this->buildPaths();
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
 		}
@@ -55,6 +54,8 @@ class AutoTestShell extends Shell {
 		if ($this->settings['notify']) {
 			include('autotest/' . $this->settings['notify'] . '.php');
 		}
+
+		$this->buildPaths();
 		$this->run();
 	}
 
@@ -67,109 +68,11 @@ class AutoTestShell extends Shell {
 	function run() {
 		$this->_hook(Hooks::initialize);
 		do {
-			set_time_limit(100);
 			$this->_getToGreen();
-
 			$this->_rerunAllTests();
-
 			$this->_waitForChanges();
 		} while (true);
 		$this->_hook(Hooks::quit);
-	}
-
-	function _findFiles() {
-		$files = $this->folder->findRecursive('.*\.php$');
-		if (!empty($this->settings['ignorePatterns'])) {
-			foreach ($files as $key => $file) {
-				foreach ($this->settings['ignorePatterns'] as $ignore) {
-					if (preg_match($ignore, $file)) {
-						unset($files[$key]);
-					}
-				}
-			}
-		}
-		return array_values($files);
-	}
-
-	function _findFilesToTest() {
-		$updated = $this->_findFiles();
-		$total = count($updated);
-		$times = array();
-		for ($i = 0; $i < $total; $i++) {
-			$time = filemtime($updated[$i]);
-			if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
-				unset($updated[$i]);
-			} else {
-				$times[] = $time;
-			}
-		}
-
-		$updated = array_values($updated);
-
-		if (!empty($updated)) {
-			$this->debug('Updated');
-		}
-
-		if (is_array($this->files_to_test)) {
-			$merge = array_merge($this->files_to_test, $updated);
-		} else {
-			$merge = $updated;
-		}
-		$this->files_to_test = array_unique($merge);
-
-		if (empty($times)) {
-			return null;
-		}
-		return max($times);
-	}
-
-	function _mapFilesToTests($files = null) {
-		if (empty($files)) {
-			$files = $this->files_to_test;
-		}
-		$files = array_map(array(&$this, '_mapFileToTest'), $files);
-		$files = array_filter(array_unique($files));
-
-		return $files;
-	}
-
-	function _mapFileToTest($filename) {
-		$file = str_replace($this->params['working'] . DS, '', $filename);
-
-		if (preg_match('|^(plugins\\' . DS . '[^\\' . DS . ']+\\' . DS . ')?tests\\' . DS . '.*\\.test\\.php$|', $file)) {
-			return $filename;
-		}
-
-		preg_match('/^([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+)(\\' . DS . '([^\\' . DS . ']+)\\' . DS . '([^\\' . DS . ']+))?/i', $file, $match);
-		if (empty($match)) {
-			return $this->params['working'] . DS . str_replace('.php', '.test.php', $file);
-		}
-		$plugin = null;
-		$type = $match[1];
-		$subType = $match[2];
-
-		if ($type == 'plugins') {
-			$plugin = $subType;
-			if (empty($match[4])) {
-				return null;
-			}
-			$type = $match[4];
-			$subType = $match[5];
-		}
-
-		$dirname = dirname($file);
-		$basename = basename($file, '.php');
-
-		$path = $type;
-		if ($subType == 'components' || $subType == 'behaviors' || $subType == 'helpers') {
-			$path = $subType;
-		}
-		$path = 'tests' . DS . 'cases' . DS . $path;
-		if (!empty($plugin)) {
-			$path = 'plugins' . DS . $plugin . DS . $path;
-		}
-
-		return $this->params['working'] . DS . $path . DS . $basename . '.test.php';
 	}
 
 	function _getToGreen() {
@@ -183,96 +86,61 @@ class AutoTestShell extends Shell {
 
 	function _runTests() {
 		$this->_hook(Hooks::run_command);
-		$new_time = $this->_findFilesToTest();
-		if (empty($new_time)) {
+		$this->files_to_test = $this->_findFiles();
+		if (!$this->files_to_test) {
 			return;
 		}
-		$this->last_mtime = $new_time;
 
-		$results = array();
-
-		$tests = $this->_mapFilesToTests();
-		foreach ($tests as $key => $test) {
-			if (!file_exists($test)) {
-				$this->out('File test not found: ' . str_replace($this->params['working'] . DS, '', $test));
-				continue;
+		$this->results = array(
+			'complete' => array(),
+			'skipped' => array(),
+			'failed' => array(),
+		);
+		foreach($this->files_to_test as $file) {
+			$result = $this->_runTest($file);
+			if (strpos($result, '✔')) {
+				$this->results['complete'][$file] = '✔';//$result;
+			} elseif (strpos($result, '❯')) {
+				$this->results['skipped'][$file] = '❯';//$result;
+			} elseif (strpos($result, '✘')) {
+				$this->results['failed'][$file] = '✘';//$result;
+			} else {
+				$this->results['unknown'][$file] = '?';//$result;
 			}
-
-			$out = $this->_runTest($test);
-
-			$results[$test] = $out;
+			$this->out($result);
 		}
 		$this->_hook(Hooks::ran_command);
 
-		$this->results = $results;
-		$this->_handleResults();
-	}
-
-	function _runTest($testfile) {
-		$case = str_replace($this->params['working'] . DS, '', $testfile);
-		$case = str_replace('.test.php', '', $case);
-		$this->debug('Testing: ' . $case);
-
-		$category = 'app';
-		if (preg_match('|^plugins\\' . DS . '([^\\' . DS . ']+)|', $case, $matchs)) {
-			$category = $matchs[1];
-			$case = str_replace('plugins' . DS . $category . DS, '', $case);
-			// $case = preg_replace('|^plugins\\' . DS . '([^\\' . DS . ']+)|', '', $case);
-		}
-		$case = str_replace('tests' . DS . 'cases' . DS, '', $case);
-
-		return shell_exec($this->paths['console'].' -app '.$this->params['working'].' testsuite ' . $category . ' case ' . $case);
-	}
-
-	function _handleResults() {
-		$this->files_to_test = array();
-		if (empty($this->results)) {
-			return;
-		}
-
-		$params = array(
-			'complete'   => 0,
-			'total'      => 0,
-			'passes'     => 0,
-			'fails'      => 0,
-			'exceptions' => 0
-		);
-		foreach ($this->results as $file => $result) {
-			$completed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes\\./', $result, $matchCompleted);
-			$failed = preg_match('/(?<complete>\d+)\/(?<total>\d+) test cases complete: (?<passes>\d+) passes, (?<fails>\d+) fails(, (?<exceptions>\d+) exceptions)?./im', $result, $matchFailed) || empty($matchCompleted['total']);
-
-			$match = null;
-
-			if ($failed) {
-				$this->files_to_test[] = $file;
-				$match = $matchFailed;
-			} else if ($completed) {
-				$match = $matchCompleted;
+		$total = -count($this->results['skipped']);
+		foreach(array('complete', 'skipped', 'failed', 'unknown') as $type) {
+			if (empty($this->results[$type])) {
+				continue;
 			}
-			if (!empty($match[0])) {
-				$this->out($match[0]);
-			}
-			foreach ($params as $key => $value) {
-				if (isset($match[$key])) {
-					$params[$key] += (int)$match[$key];
-				}
-			}
+			$total += count($this->results[$type]);
+			$this->results[$type . ' files'] = $this->results[$type];
+			$this->results[$type] = count($this->results[$type]);
 		}
-		if (empty($this->files_to_test)) {
-			$this->files_to_test = null;
-			$this->_hook(Hooks::green, $params);
+		$this->results['total'] = $total;
+
+		if (empty($this->results['failed']) && empty($this->results['unknown'])) {
+			$this->_hook(Hooks::green, array_filter($this->results));
 		} else {
-			$this->_hook(Hooks::red, $this->files_to_test, $params);
+			unset ($this->results['complete files']);
+			$this->_hook(Hooks::red, $this->results['failed'], array_filter($this->results));
 		}
+	}
+
+	function _runTest($file) {
+		$out = exec($this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file, $_, $return);
+		return implode($_, "\n");
 	}
 
 	function _waitForChanges() {
 		$this->_hook(Hooks::waiting);
 		do {
-			set_time_limit(100);
-			$time = $this->_findFilesToTest();
-			sleep(1);
-		} while (is_null($time));
+			$this->files_to_test = $this->_findFiles();
+			sleep($this->settings['interval'] * 60);
+		} while (!$this->files_to_test);
 	}
 
 	function _allGood() {
@@ -327,5 +195,64 @@ class AutoTestShell extends Shell {
 			call_user_func_array($callback, $params);
 		}
 	}
+
+	function _findFiles($dir = null, $modifiedMins = null) {
+		if (!$dir) {
+			$dir = $this->params['working'];
+		}
+		if ($modifiedMins === null) {
+			if (!$this->settings['checkAllOnStart']) {
+				$modifiedMins = $this->settings['interval'];
+			}
+		}
+
+		if (DS === '\\') {
+			if (empty($this->Folder)) {
+				$this->Folder = new Folder($dir);
+			}
+			$files = $this->Folder->findRecursive('.*\.php$');
+			if ($modifiedMins) {
+				$lastMTime = 0;
+				foreach ($files as $key => $file) {
+					$time = filemtime($file);
+					if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
+						unset ($files[$key]);
+						continue;
+					}
+					if ($time > $lastMTime) {
+						$lastMTime = $time;
+					}
+				}
+				if ($lastMTime > $this->last_mtime) {
+					$this->last_mtime = $time;
+				}
+			}
+			if ($this->settings['checkAllOnStart']) {
+				$files = array();
+			}
+		} else {
+			$suffix = '';
+			if ($modifiedMins) {
+				$suffix = ' -mmin ' . $modifiedMins * 1.1;
+			}
+			$cmd = 'find ' . $dir . ' ! -iwholename "*.svn*" \
+			! -iwholename "*.git*" ! -iwholename "*/tmp/*" ! -iwholename "*webroot*" \
+			! -iwholename "*Zend*" ! -iwholename "*simpletest*" ! -iwholename "*firephp*" \
+			! -iwholename "*jquery*" ! -iwholename "*Text*" -name "*.php" -type f' . $suffix;
+			exec($cmd, $files);
+		}
+		if (!empty($this->settings['ignorePatterns'])) {
+			foreach ($files as $key => $file) {
+				foreach ($this->settings['ignorePatterns'] as $ignore) {
+					if (preg_match($ignore, $file)) {
+						unset($files[$key]);
+					}
+				}
+			}
+		}
+		if ($this->settings['checkAllOnStart']) {
+			$this->settings['checkAllOnStart'] = false;
+		}
+		return array_values($files);
+	}
 }
-?>

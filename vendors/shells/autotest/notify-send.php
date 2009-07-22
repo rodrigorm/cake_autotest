@@ -7,26 +7,25 @@ class NotifySend {
 	);
 
 	static function show($message, $title = null, $priority = 0, $status = 'success') {
-
 		$img = '';
 		if (!empty(NotifySend::$statuses[$status])) {
 			$img = dirname(dirname(dirname(__FILE__))) . DS . 'img' . DS . NotifySend::$statuses[$status];
 		}
 		if (empty($title)) {
-			$title = $message;
+			$title = APP_DIR;
 		}
 		$message = addslashes($message);
-		$title = APP_DIR . ': ' . addslashes($title);
+		$title = addslashes($title);
 
 		shell_exec("notify-send -i $img \"{$title}\" \"{$message}\"");
 	}
 
 	static function green($params) {
-		NotifySend::show("Tests passed.\n" . NotifySend::normalize($params), 'Tests Passed');
+		NotifySend::show(NotifySend::normalize($params), 'Tests Passed');
 	}
 
-	static function red($files_to_test, $params) {
-		NotifySend::show(count($files_to_test) . " tests failed.\n" . NotifySend::normalize($params), 'Tests Failed', -2, 'error');
+	static function red($fails, $params) {
+		NotifySend::show(NotifySend::normalize($params), $fails . ' Fails', -2, 'error');
 	}
 
 	static function allGood() {
@@ -34,22 +33,31 @@ class NotifySend {
 	}
 
 	static function normalize($params) {
-		$message = $params['complete'] . '/' . $params['total'] . ' test cases complete: ';
+		if (!isset($params['complete'])) {
+			$params['complete'] = 0;
+		}
+		$message = $params['complete'] . '/' . $params['total'];
 		unset($params['complete']);
 		unset($params['total']);
 
 		foreach ($params as $key => $value) {
-			if ($value == 0) {
+			if ($value === 0) {
 				unset($params[$key]);
 				continue;
 			}
-			$params[$key] = $value . ' ' . $key;
+			if (is_array($value)) {
+				$params[$key] = '';
+				foreach ($value as $k => $v) {
+					$params[$key] .= str_replace(APP, '', $k) . " $v\n";
+				}
+			} else {
+				$params[$key] = $value . ' ' . $key;
+			}
 		}
-		return $message . implode(', ', $params) . '.';
+		return $message . "\n" . implode($params, "\n");
 	}
 }
 
 AutoTestShell::addHook(Hooks::green, array('NotifySend', 'green'));
 AutoTestShell::addHook(Hooks::red, array('NotifySend', 'red'));
 AutoTestShell::addHook(Hooks::all_good, array('NotifySend', 'allGood'));
-?>
