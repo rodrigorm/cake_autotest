@@ -238,7 +238,7 @@ class AutoTestShell extends Shell {
 			$this->_hook(Hooks::green, array_filter($this->results));
 		} else {
 			unset ($this->results['complete files']);
-			$this->_hook(Hooks::red, $this->results['failed'], array_filter($this->results));
+			$this->_hook(Hooks::red, (int)$this->results['failed'], array_filter($this->results));
 		}
 	}
 
