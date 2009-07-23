@@ -20,10 +20,17 @@ Using as a git hook
 ==================
 To use as a pre-commit hook, create/edit .git/hooks/pre-commit with the following contents:
 >>>
+#!/bin/sh
 cake repo checkFiles pre-commit
 <<<
 
+Ensure that the shebang matches the path to your desired shell. To find your shell type "which sh/bash/csh"
+and edit appropriately.
+
 Make the file executable and the repo shell will then be called each time you commit.
+
+you can test your git hook by typing:
+$ . .git/hooks/pre-commit
 
 Using realtime
 ==============
