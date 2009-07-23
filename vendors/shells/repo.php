@@ -431,10 +431,23 @@ class RepoShell extends Shell {
 			'file' => $file,
 		));
 		$this->checkString($string);
+		$result = false;
 		if (empty($this->errors[$this->current['file']])) {
-			return true;
+			$result = true;
 		}
-		return false;
+		if ($this->command != 'checkFile') {
+			return $result;
+		}
+
+		if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['notice']) {
+			$this->out($file . ' ', false);
+			$nl = true;
+		}
+		if ($result) {
+			$this->out('✔', $nl);
+		} else {
+			$this->out('✘', $nl);
+		}
 	}
 
 /**
