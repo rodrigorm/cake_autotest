@@ -400,7 +400,7 @@ class AutoTestShell extends Shell {
 			$suffix = '';
 			$sinceLast = time() - $this->last_mtime;
 			if ($this->last_mtime) {
-				$suffix = ' -mmin ' . floor($sinceLast / 60);
+				$suffix = ' -mmin ' . ceil($sinceLast / 60);
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
