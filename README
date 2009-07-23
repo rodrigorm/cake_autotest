@@ -1,7 +1,23 @@
-Autotest Shell - monitor a folder for changes, and call a validation/test routine for any changed files
-Repo Shell - syntax checks and test-case running by file name
-Notify Vendor - send status messages
+Installation
+===========
 
+To be able to use this package anywhere on your computer, move the files to the following location:
+...
+	app
+	someotherapp
+	cake
+	vendors
+		notify.php
+		shells
+			autotest.php
+			repo.php
+
+Notify - send status messages
+Autotest - monitor a folder for changes, and call the repo shell for any changed files
+Repo - syntax checks and test-case running by file name
+
+Using as a git hook
+==================
 To use as a pre-commit hook, create/edit .git/hooks/pre-commit with the following contents:
 >>>
 cake repo checkFiles pre-commit
@@ -9,6 +25,8 @@ cake repo checkFiles pre-commit
 
 Make the file executable and the repo shell will then be called each time you commit.
 
+Using realtime
+==============
 To use automatically whenever you edit a file in your project, run "cake autotest" from the folder
 you want to be monitored. Using with screen may be convenient ("screen cake autotest") as you can
 then close the terminal and the process will continue to run.
