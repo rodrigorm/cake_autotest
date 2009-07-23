@@ -761,7 +761,7 @@ class RepoShell extends Shell {
 		$cmd = "$svnlook changed -t {$this->params['txn']} " . $this->params['repo'];
 		$this->_exec($cmd, $out);
 		foreach($out as &$file) {
-			$file = trim(substr($file, 2));
+			$file = trim(substr($file, 5));
 		}
 		return $out;
 	}
