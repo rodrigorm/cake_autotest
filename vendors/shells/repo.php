@@ -130,6 +130,7 @@ class RepoShell extends Shell {
  * @access protected
  */
 	var $_defaultSettings = array(
+		'repoType' => 'git',
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
@@ -667,9 +668,17 @@ class RepoShell extends Shell {
 	function _listFiles() {
 		if (!empty($this->args)) {
 			if ($this->args[0] == 'pre-commit') {
-				return $this->_listGitFiles();
+				if ($this->settings['repoType'] == 'git') {
+					return $this->_listGitFiles();
+				} elseif ($this->settings['repoType'] == 'svn') {
+					return $this->_listSvnFiles();
+				}
 			} elseif ($this->args[0] == 'working') {
-				return $this->_listGitFiles('working');
+				if ($this->settings['repoType'] == 'git') {
+					return $this->_listGitFiles('working');
+				} elseif ($this->settings['repoType'] == 'svn') {
+					return $this->_listSvnFiles('working');
+				}
 			}
 			$arg = $this->args[0];
 			if ($arg[0] === '*') {
@@ -729,6 +738,32 @@ class RepoShell extends Shell {
 			$this->_exec("git diff-index --name-only $against", $output);
 		}
 		return $output;
+	}
+
+/**
+ * listSvnFiles method
+ *
+ * @TODO stub
+ * @return void
+ * @access protected
+ */
+
+	function _listSvnFiles($type = 'pre-commit') {
+		if (DS == '/') {
+			$svnlook = exec('which svnlook');
+		} elseif (!empty($this->params['svnlook'])) {
+			$svnlook = $this->params['svnlook'];
+		}
+		if (empty($svnlook)) {
+			trigger_error('RepoShell::_listSvnFiles could not find svnlook executable');
+			return false;
+		}
+		$cmd = "$svnlook changed -t {$this->params['txn']} " . $this->params['repo'];
+		$this->_exec($cmd, $out);
+		foreach($out as &$file) {
+			$file = trim(substr($file, 1));
+		}
+		return $out;
 	}
 
 /**
