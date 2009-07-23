@@ -19,7 +19,7 @@
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
-App::import('Vendor', 'Notify');
+App::import('Vendor', 'Autotest.Notify');
 
 /**
  * Hooks class
@@ -400,12 +400,12 @@ class AutoTestShell extends Shell {
 			$suffix = '';
 			$sinceLast = time() - $this->last_mtime;
 			if ($this->last_mtime) {
-				$suffix = ' -mmin ' . $sinceLast / 60;
+				$suffix = ' -mmin ' . floor($sinceLast / 60);
 			}
-			$cmd = 'find ' . $dir . ' ! -iwholename "*.svn*" \
-			! -iwholename "*.git*" ! -iwholename "*/tmp/*" ! -iwholename "*webroot*" \
-			! -iwholename "*Zend*" ! -iwholename "*simpletest*" ! -iwholename "*firephp*" \
-			! -iwholename "*jquery*" ! -iwholename "*Text*" -name "*.php" -type f' . $suffix;
+			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
+			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
+			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
+			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
 			$this->last_mtime = time();
 		}

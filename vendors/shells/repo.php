@@ -694,10 +694,10 @@ class RepoShell extends Shell {
 			$suffix[] = '-name "*.ctp"';
 		}
 		$suffix = '\( ' . implode (' -o ', $suffix) . ' \)';
-		$cmd = 'find ' . $this->params['working'] . ' ! -iwholename "*.svn*" \
-		! -iwholename "*.git*" ! -iwholename "*/tmp/*" ! -iwholename "*webroot*" \
-		! -iwholename "*Zend*" ! -iwholename "*simpletest*" ! -iwholename "*firephp*" \
-		! -iwholename "*jquery*" ! -iwholename "*Text*" ' . $suffix . ' -type f';
+		$cmd = 'find ' . $this->params['working'] . ' ! -ipath "*.svn*" \
+		! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
+		! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
+		! -iname "*jquery*" ! -ipath "*Text*" ' . $suffix . ' -type f';
 		$this->_log($cmd, null, 'debug');
 		exec($cmd, $out);
 		return $out;
