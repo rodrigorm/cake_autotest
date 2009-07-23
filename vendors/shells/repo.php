@@ -526,7 +526,7 @@ class RepoShell extends Shell {
 						$newRegex = '/(.*?)' . substr($rule, 1);
 						preg_match_all($newRegex, $testString, $matches);
 						if ($matches) {
-							$lineNo = 1;
+							$lineNo = 0;
 							foreach($matches[0] as $match) {
 								$lineNo += substr_count($match, "\n");
 								$this->current['lineNo'] =  $lineNo;
