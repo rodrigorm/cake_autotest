@@ -1,0 +1,3 @@
+<?php
+// @noverify
+$var = 'x';
