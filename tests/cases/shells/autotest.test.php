@@ -27,11 +27,11 @@ define('ERROR_OUTPUT', "Welcome to CakePHP v1.2.0.7692 RC3 Console\n------------
 
 class AutoTestTestCase extends CakeTestCase {
 	function setUp() {
-		$this->Folder =& new Folder();
-		$this->Dispatcher =& new MockShellDispatcher();
-		$this->AutoTest =& new AutoTestShellTestVersion();
+		$this->Folder = new Folder();
+		$this->Dispatcher = new MockShellDispatcher();
+		$this->AutoTest = new AutoTestShellTestVersion();
 		$this->AutoTest->Dispatch = $this->Dispatcher;
-		$this->AutoTest->folder =& new Folder(TEST_APP);
+		$this->AutoTest->folder = new Folder(TEST_APP);
 		$this->AutoTest->params['working'] = TEST_APP;
 	}
 
@@ -58,7 +58,7 @@ class AutoTestTestCase extends CakeTestCase {
 
 	function testFindFilesIgnore() {
 		$this->AutoTest->ignore_files = array(
-			'/models.post\.php$/', 
+			'/models.post\.php$/',
 			'/test_plugin/',
 			'/one(\\.test)?\\.php$/'
 		);
@@ -75,7 +75,7 @@ class AutoTestTestCase extends CakeTestCase {
 		$past = $time - 1;
 		$this->AutoTest->last_mtime = $past;
 		touch(TEST_APP . DS . 'controllers' . DS . 'posts_controller.php', $time);
-		
+
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 		);
@@ -154,7 +154,7 @@ class AutoTestTestCase extends CakeTestCase {
 		touch(TEST_APP . DS . 'controllers' . DS . 'posts_controller.php', $time);
 
 		$testfile = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		
+
 		$this->AutoTest->setReturnValue('_runTest', PASS_OUTPUT, array($testfile));
 
 		ob_start();
