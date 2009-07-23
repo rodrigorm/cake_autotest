@@ -263,9 +263,11 @@ class AutoTestShell extends Shell {
 	function _waitForChanges() {
 		$this->_hook(Hooks::waiting);
 		do {
-			$this->files_to_test = $this->_findFiles();
 			sleep($this->settings['interval'] * 60);
-		} while (!$this->files_to_test);
+			$changedFiles = $this->_findFiles();
+			$files = array_unique(am($changedFiles, array_values((array)$this->fails)));
+			$this->files_to_test = $files;
+		} while (!$changedFiles);
 	}
 
 /**
@@ -416,7 +418,7 @@ class AutoTestShell extends Shell {
 				}
 			}
 		}
-		$files = array_unique(am($files, array_values((array)$this->fails)));
+		$files = array_unique($files);
 		sort($files);
 		return array_values($files);
 	}
