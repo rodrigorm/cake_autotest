@@ -331,6 +331,7 @@ class RepoShell extends Shell {
 			$this->settings['quiet'] = false;
 			$this->settings['logLevel'] = 'info';
 		}
+		$this->buildPaths();
 	}
 
 /**
@@ -622,9 +623,9 @@ class RepoShell extends Shell {
 			return true;
 		}
 		if (rtrim(APP, DS) === rtrim($this->params['root'] . DS . $this->params['app'], DS)) {
-			$cmd = 'cake testsuite ' . $type . ' case ' . $case;
+			$cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
 		} else {
-			$cmd = 'cake -app ' . $this->params['root'] . DS . $this->params['app'] . ' testsuite ' . $type . ' case ' . $case;
+			$cmd = $this->paths['console'] . ' -app ' . $this->params['root'] . DS . $this->params['app'] . ' testsuite ' . $type . ' case ' . $case;
 		}
 		if (isset($this->_testResults[$cmd])) {
 			return $this->_testResults[$cmd];
@@ -855,5 +856,15 @@ class RepoShell extends Shell {
 	function _stop() {
 		$this->_log('Return value: ' . (int)$this->returnValue, null, 'debug');
 		return parent::_stop($this->returnValue);
+	}
+
+/**
+ * buildPaths method
+ *
+ * @return void
+ * @access public
+ */
+	function buildPaths() {
+		$this->paths = array('console' => array_pop(Configure::corePaths('cake')) . 'console' . DS . 'cake');
 	}
 }
