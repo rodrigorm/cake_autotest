@@ -685,16 +685,6 @@ class RepoShell extends Shell {
 	}
 
 /**
- * checkSkip method
- *
- * @return void
- * @access protected
- */
-	function _checkSkip() {
-		return true;
-	}
-
-/**
  * listFiles method
  *
  * For windows use $Folder->findRecursive and find all php/ctp files in the working folder
