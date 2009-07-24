@@ -112,6 +112,20 @@ class AutoTestShell extends Shell {
 		'checkAllOnStart' => true
 	);
 
+	function initialize() {
+		if (file_exists('config' . DS . 'autotest.php')) {
+			include('config' . DS . 'autotest.php');
+			if (!empty($config)) {
+				$this->settings = am($this->settings, $config);
+			}
+		} elseif (file_exists(APP . 'config' . DS . 'autotest.php')) {
+			include(APP . 'config' . DS . 'autotest.php');
+			if (!empty($config)) {
+				$this->settings = am($this->settings, $config);
+			}
+		}
+	}
+
 /**
  * main method
  *
@@ -195,7 +209,9 @@ class AutoTestShell extends Shell {
  */
 	function _runTests() {
 		$this->_hook(Hooks::run_command);
-		$this->files_to_test = $this->_findFiles();
+		if (!$this->files_to_test) {
+			$this->files_to_test = $this->_findFiles();
+		}
 		if (!$this->files_to_test) {
 			return;
 		}
@@ -277,7 +293,7 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _allGood() {
-		return empty($this->files_to_test);
+		return empty($this->fails);
 	}
 
 /**
@@ -375,6 +391,10 @@ class AutoTestShell extends Shell {
 			$dir = $this->params['working'];
 		}
 
+		if (!$this->last_mtime && !$this->settings['checkAllOnStart']) {
+			$this->last_mtime = time();
+			return array();
+		}
 		if (DS === '\\') {
 			if (empty($this->Folder)) {
 				$this->Folder = new Folder($dir);
@@ -384,7 +404,7 @@ class AutoTestShell extends Shell {
 			$suffix = '';
 			$sinceLast = time() - $this->last_mtime;
 			if ($this->last_mtime) {
-				$suffix = ' -mmin ' . ceil($sinceLast / 60);
+				// $suffix = ' -mmin ' . ceil($sinceLast / 60);
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
@@ -392,8 +412,16 @@ class AutoTestShell extends Shell {
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
 		}
-		if (!$this->last_mtime && !$this->settings['checkAllOnStart']) {
-			$files = array();
+		$files = array_unique($files);
+		sort($files);
+		if (!empty($this->settings['ignorePatterns'])) {
+			foreach ($files as $key => $file) {
+				foreach ($this->settings['ignorePatterns'] as $ignore) {
+					if (preg_match($ignore, $file)) {
+						unset($files[$key]);
+					}
+				}
+			}
 		}
 		$lastMTime = 0;
 		foreach ($files as $key => $file) {
@@ -407,19 +435,8 @@ class AutoTestShell extends Shell {
 			}
 		}
 		if ($lastMTime > $this->last_mtime) {
-			$this->last_mtime = $time;
+			$this->last_mtime = $lastMTime;
 		}
-		if (!empty($this->settings['ignorePatterns'])) {
-			foreach ($files as $key => $file) {
-				foreach ($this->settings['ignorePatterns'] as $ignore) {
-					if (preg_match($ignore, $file)) {
-						unset($files[$key]);
-					}
-				}
-			}
-		}
-		$files = array_unique($files);
-		sort($files);
 		return array_values($files);
 	}
 }
