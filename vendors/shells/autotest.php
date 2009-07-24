@@ -69,7 +69,7 @@ class AutoTestShell extends Shell {
  * @var mixed null
  * @access public
  */
-	public $last_mtime    = null;
+	public $last_mtime = null;
 
 /**
  * files_to_test property
@@ -85,12 +85,12 @@ class AutoTestShell extends Shell {
  * @var mixed null
  * @access public
  */
-	public $results       = null;
+	public $results = null;
 
 /**
  * Enter Description Here
  */
-	static $hooks      = array();
+	static $hooks = array();
 
 /**
  * fails property
@@ -138,6 +138,7 @@ class AutoTestShell extends Shell {
  * @access public
  */
 	function main() {
+		//TODO: Move this line to method _findFiles()
 		App::import('Core', 'Folder');
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
