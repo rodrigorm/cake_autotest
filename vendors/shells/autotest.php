@@ -19,7 +19,11 @@
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
-App::import('Vendor', 'Autotest.Notify');
+
+/**
+ * Ensure the Notify vendor loads irrespective of how it's been included
+ */
+App::import('Vendor', array('Notify', 'Autotest.Notify'));
 
 /**
  * Hooks class
@@ -254,7 +258,7 @@ class AutoTestShell extends Shell {
 			$this->_hook(Hooks::green, array_filter($this->results));
 		} else {
 			unset ($this->results['complete files']);
-			$this->_hook(Hooks::red, $this->results['failed'], array_filter($this->results));
+			$this->_hook(Hooks::red, (int)$this->results['failed'], array_filter($this->results));
 		}
 	}
 

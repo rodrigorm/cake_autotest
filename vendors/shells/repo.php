@@ -130,6 +130,7 @@ class RepoShell extends Shell {
  * @access protected
  */
 	var $_defaultSettings = array(
+		'repoType' => 'git',
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
@@ -157,9 +158,12 @@ class RepoShell extends Shell {
 			'debug' => array(
 				'rule' => '/(?![\r\n] \*)[^\r\n]*(?!function[^\r\n]*)debug\s*\((?![^\r\n]*@ignore)/s',
 			),
-			'leadingWhitespace',
+			'leadingWhitespace' => array(
+				'singleMatch' => true,
+			),
 			'newLineAtEndOfFile' => array(
 				'rule' => '/[\s\r\n]$/s',
+				'singleMatch' => true,
 				'vimTip' => 'Open and save using the Cakephp plugin to avoid this'
 			),
 			'php53DeprecatedAssignValueOfNewByReference' => array(
@@ -312,7 +316,14 @@ class RepoShell extends Shell {
 		$this->methods = array_map('strtolower', get_class_methods($this));
 
 		$this->settings = $this->_defaultSettings;
-		if (file_exists('config' . DS . 'repo.php')) {
+		if (!empty($this->params['config'])) {
+			if (file_exists($this->params['config'])) {
+				include($this->params['config']);
+				if (!empty($config)) {
+					$this->settings = am($this->settings, $config);
+				}
+			}
+		} elseif (file_exists('config' . DS . 'repo.php')) {
 			include('config' . DS . 'repo.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
@@ -394,8 +405,16 @@ class RepoShell extends Shell {
 					}
 				}
 			}
-			if (!empty($this->args) && $this->args[0] == 'pre-commit') { $this->out('Commit aborted');
-				$this->out('	you can override this check with the --no-verify flag');
+			if (!empty($this->args) && $this->args[0] == 'pre-commit') {
+				$this->out('Commit aborted');
+				if ($this->settings['repoType'] === 'git') {
+					$this->out('	you can override this check with the --no-verify flag');
+				} elseif ($this->settings['repoType'] === 'svn') {
+					if (empty($this->settings['disableNoverify'])) {
+						$this->out('	you can override this check by including in your commit ' .
+							'message @noverify (at the end of any line)');
+					}
+				}
 			}
 			/*
 			if (!empty($this->settings['vimTips'])) { // @TODO
@@ -522,11 +541,11 @@ class RepoShell extends Shell {
 				}
 
 				if ($message) {
-					if ($rule[0] === '/') {
+					if ($rule[0] === '/' && empty($validator['singleMatch'])) {
 						$newRegex = '/(.*?)' . substr($rule, 1);
 						preg_match_all($newRegex, $testString, $matches);
 						if ($matches) {
-							$lineNo = 0;
+							$lineNo = 1;
 							foreach($matches[0] as $match) {
 								$lineNo += substr_count($match, "\n");
 								$this->current['lineNo'] =  $lineNo;
@@ -669,31 +688,29 @@ class RepoShell extends Shell {
 	}
 
 /**
- * checkSkip method
- *
- * @return void
- * @access protected
- */
-	function _checkSkip() {
-		return true;
-	}
-
-/**
  * listFiles method
  *
  * For windows use $Folder->findRecursive and find all php/ctp files in the working folder
  * Otherwise use find via the command line (alot faster), excluding tmp files, the webroot and a
  * few vendors
  *
- * @return void
+ * @return array of files
  * @access protected
  */
 	function _listFiles() {
 		if (!empty($this->args)) {
 			if ($this->args[0] == 'pre-commit') {
-				return $this->_listGitFiles();
+				if ($this->settings['repoType'] == 'git') {
+					return $this->_listGitFiles();
+				} elseif ($this->settings['repoType'] == 'svn') {
+					return $this->_listSvnFiles();
+				}
 			} elseif ($this->args[0] == 'working') {
-				return $this->_listGitFiles('working');
+				if ($this->settings['repoType'] == 'git') {
+					return $this->_listGitFiles('working');
+				} elseif ($this->settings['repoType'] == 'svn') {
+					return $this->_listSvnFiles('working');
+				}
 			}
 			$arg = $this->args[0];
 			if ($arg[0] === '*') {
@@ -735,7 +752,7 @@ class RepoShell extends Shell {
  * If there's no output, pre-commit has been called explicitly and there isn't anything to be
  * committed - so use the un-committed and un-added changes
  *
- * @return void
+ * @return array of files
  * @access protected
  */
 	function _listGitFiles($type = 'pre-commit') {
@@ -756,9 +773,51 @@ class RepoShell extends Shell {
 	}
 
 /**
+ * listSvnFiles method
+ *
+ * Use svnlook to find what's changed. Allow checks to be skipped by including "@noverify" in a
+ * commit message unless the setting 'disableNoverify' is set to true. This setting is svn specific
+ *
+ * @return array of files
+ * @access protected
+ */
+
+	function _listSvnFiles($type = 'pre-commit') {
+		if (DS == '/') {
+			$svnlook = exec('which svnlook');
+		} elseif (!empty($this->params['svnlook'])) {
+			$svnlook = $this->params['svnlook'];
+		}
+		if (empty($svnlook)) {
+			trigger_error('RepoShell::_listSvnFiles could not find svnlook executable');
+			return array();
+		}
+		if (isset($this->params['txn']) && isset($this->params['repo'])) {
+			if (empty($this->settings['disableNoverify'])) {
+				$cmd = "$svnlook log -t {$this->params['txn']} " . $this->params['repo'];
+				$this->_exec($cmd, $message);
+				if (preg_match('/@noverify[\r\n]|@noverify$/s', implode($message, "\n"))) {
+					$this->out('Checks overriden by @noverify marker found at the end of a line');
+					return array();
+				}
+			}
+			$cmd = "$svnlook changed -t {$this->params['txn']} " . $this->params['repo'];
+			$this->_exec($cmd, $out);
+		} else {
+			$this->_exec('svn status -q', $out);
+		}
+		foreach($out as &$file) {
+			$file = trim(substr($file, 4));
+		}
+		return $out;
+	}
+
+/**
  * log method
  *
  * If the message level is greater than the set logLevel - ignore it
+ * If it's an error - don't echo it inline to prevent duplicate messages (once when found, and
+ * once in the summary when all files are processed)
  *
  * @param string $string ''
  * @param mixed $ruleKey null
@@ -784,6 +843,7 @@ class RepoShell extends Shell {
 				}
 			}
 			$this->errors[$this->current['file']][$this->current['rule']][$this->current['lineNo']] = $string;
+			return;
 		}
 		if ($this->_logLevel[$level] === $this->_logLevel['err']) {
 			$string = 'Error: ' . $string;

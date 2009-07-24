@@ -118,7 +118,7 @@ class Notify {
  * @access public
  */
 	static function red($fails, $params) {
-		Notify::message(var_dump($fails, true) . ' Fails', Notify::_normalize($params), -2, 'error');
+		Notify::message($fails . ' Fails', Notify::_normalize($params), -2, 'error');
 	}
 
 /**
@@ -190,7 +190,7 @@ class Notify {
 /**
  * detectNotify method
  *
- * Check if it's windows - if it is set to debug (temporary while some equivalent is found)
+ * Check if it's windows - if it is set to log (temporary while some equivalent is found)
  *
  * Else, check which of the notify methods are available, first found is used
  *
@@ -279,7 +279,12 @@ class Notify {
  * @access protected
  */
 	static protected function _messageLog($img, $title, $message, $priority = 0) {
-		$this->log(str_replace("\n", ' ', $title . ':' . $message), 'autotest');
+		static $Object;
+
+		if (!$Object) {
+			$Object = new Object();
+		}
+		$Object->log(str_replace("\n", ' ', $title . ':' . $message), 'autotest');
 	}
 
 /**

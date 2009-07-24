@@ -32,6 +32,30 @@ Make the file executable and the repo shell will then be called each time you co
 you can test your git hook by typing:
 $ . .git/hooks/pre-commit
 
+Using as an svn hook
+====================
+
+*Use as an svn hook is still a WIP*
+
+To use as a pre-commit hook for svn create/edit hooks/pre-commit on the repository with the following contents:
+>>>
+#!/bin/sh
+TERM=linux
+export TERM
+CAKE=/cake/is/herex/console/cake
+
+$CAKE repo checkFiles pre-commit -repo $1 -txn $2 >&2
+<<<
+
+Notes:
+	on a Windows system, you should name the hook 'pre-commit.bat' or 'pre-commit.exe'
+	You can nominate a config file (on the svn server) using  the config switch:
+		cake repo ... -config /use/this/config/file
+	Users can override the pre-commit hook by including @noverify at the end of any line in their
+	commit message.
+	The svn repo can disable the @noverify flag by setting $config['disableNoverify'] in the config
+	file
+
 Using realtime
 ==============
 To use automatically whenever you edit a file in your project, run "cake autotest" from the folder
