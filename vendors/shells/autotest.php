@@ -320,6 +320,7 @@ class AutoTestShell extends Shell {
 	function _reset() {
 		$this->files_to_test = null;
 		$this->last_mtime = null;
+		$this->fails = array();
 
 		$this->_hook(Hooks::reset);
 	}
