@@ -57,7 +57,7 @@ class Notify {
  */
 	public static $notifiers = array(
 		'NotifySend' => 'notify-send',
-		'Growl' => array(
+		'Growlnotify' => array(
 			'cmd' => 'growlnotify',
 			'statuses' => array(
 				'success' => '/Applications/Mail.app/Contents/Resources/status-available.tiff',
@@ -76,7 +76,7 @@ class Notify {
  * @access public
  */
 	static function allGood() {
-		Notify::message('Tests Passed');
+		Notify::message('All Tests Passed');
 	}
 
 /**
@@ -137,7 +137,13 @@ class Notify {
 		}
 		$img = '';
 		if (!empty(Notify::$statuses[$status])) {
-			$img = dirname(dirname(dirname(__FILE__))) . DS . 'img' . DS . Notify::$statuses[$status];
+			$file = dirname(dirname(__FILE__)) . DS . 'img' . DS . Notify::$statuses[$status];
+			echo $file, "\n";
+			if (file_exists($file)) {
+				$img = $file;
+			} elseif (file_exists(Notify::$statuses[$status])) {
+				$img = Notify::$statuses[$status];
+			}
 		}
 		if (empty($title)) {
 			$title = APP_DIR;
@@ -206,7 +212,7 @@ class Notify {
 				if (!$return) {
 					Notify::$method = $method;
 					if(!empty($params['statuses'])) {
-						Notify::$statuses = $statuses;
+						Notify::$statuses = $params['statuses'];
 					}
 					return $method;
 				}
