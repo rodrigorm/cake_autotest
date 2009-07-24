@@ -158,9 +158,12 @@ class RepoShell extends Shell {
 			'debug' => array(
 				'rule' => '/(?![\r\n] \*)[^\r\n]*(?!function[^\r\n]*)debug\s*\((?![^\r\n]*@ignore)/s',
 			),
-			'leadingWhitespace',
+			'leadingWhitespace' => array(
+				'singleMatch' => true,
+			),
 			'newLineAtEndOfFile' => array(
 				'rule' => '/[\s\r\n]$/s',
+				'singleMatch' => true,
 				'vimTip' => 'Open and save using the Cakephp plugin to avoid this'
 			),
 			'php53DeprecatedAssignValueOfNewByReference' => array(
@@ -538,11 +541,11 @@ class RepoShell extends Shell {
 				}
 
 				if ($message) {
-					if ($rule[0] === '/') {
+					if ($rule[0] === '/' && empty($validator['singleMatch'])) {
 						$newRegex = '/(.*?)' . substr($rule, 1);
 						preg_match_all($newRegex, $testString, $matches);
 						if ($matches) {
-							$lineNo = 0;
+							$lineNo = 1;
 							foreach($matches[0] as $match) {
 								$lineNo += substr_count($match, "\n");
 								$this->current['lineNo'] =  $lineNo;
@@ -813,6 +816,8 @@ class RepoShell extends Shell {
  * log method
  *
  * If the message level is greater than the set logLevel - ignore it
+ * If it's an error - don't echo it inline to prevent duplicate messages (once when found, and
+ * once in the summary when all files are processed)
  *
  * @param string $string ''
  * @param mixed $ruleKey null
@@ -838,6 +843,7 @@ class RepoShell extends Shell {
 				}
 			}
 			$this->errors[$this->current['file']][$this->current['rule']][$this->current['lineNo']] = $string;
+			return;
 		}
 		if ($this->_logLevel[$level] === $this->_logLevel['err']) {
 			$string = 'Error: ' . $string;
