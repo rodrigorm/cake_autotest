@@ -217,8 +217,8 @@ class Notify {
 				}
 			}
 		} else {
-				Notify::$method = 'Log';
-				return 'Log';
+			Notify::$method = 'Log';
+			return 'Log';
 		}
 		return false;
 	}
@@ -259,6 +259,8 @@ class Notify {
 		}
 		if ($message) {
 			$cmd .= " -m \"$message\"";
+		} else {
+			$cmd .= ' -m ""';
 		}
 		if ($title) {
 			$cmd .= " \"$title\"";
