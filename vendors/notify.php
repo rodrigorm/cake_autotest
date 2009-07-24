@@ -138,7 +138,6 @@ class Notify {
 		$img = '';
 		if (!empty(Notify::$statuses[$status])) {
 			$file = dirname(dirname(__FILE__)) . DS . 'img' . DS . Notify::$statuses[$status];
-			echo $file, "\n";
 			if (file_exists($file)) {
 				$img = $file;
 			} elseif (file_exists(Notify::$statuses[$status])) {
