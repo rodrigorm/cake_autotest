@@ -38,8 +38,7 @@ if (!class_exists('ShellDispatcher')) {
 }
 
 if (!class_exists('RepoShell')) {
-	App::import('Shell', 'Repo');
-	include_once('vendors/shells/repo.php'); //temp
+	App::import('Shell', 'Autotest.Repo');
 }
 
 /**
