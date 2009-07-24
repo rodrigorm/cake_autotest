@@ -23,7 +23,8 @@
 /**
  * Ensure the Notify vendor loads irrespective of how it's been included
  */
-App::import('Vendor', array('Notify', 'Autotest.Notify'));
+App::import('Vendor', 'Notify');
+App::import('Vendor', 'Autotest.Notify');
 
 /**
  * Hooks class
