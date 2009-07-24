@@ -19,7 +19,7 @@
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
-App::import('Vendor', 'Notify');
+App::import('Vendor', 'Autotest.Notify');
 
 /**
  * Hooks class
@@ -263,9 +263,11 @@ class AutoTestShell extends Shell {
 	function _waitForChanges() {
 		$this->_hook(Hooks::waiting);
 		do {
-			$this->files_to_test = $this->_findFiles();
 			sleep($this->settings['interval'] * 60);
-		} while (!$this->files_to_test);
+			$changedFiles = $this->_findFiles();
+			$files = array_unique(am($changedFiles, array_values((array)$this->fails)));
+			$this->files_to_test = $files;
+		} while (!$changedFiles);
 	}
 
 /**
@@ -378,36 +380,34 @@ class AutoTestShell extends Shell {
 				$this->Folder = new Folder($dir);
 			}
 			$files = $this->Folder->findRecursive('.*\.php$');
-			if ($this->last_mtime) {
-				$lastMTime = 0;
-				foreach ($files as $key => $file) {
-					$time = filemtime($file);
-					if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
-						unset ($files[$key]);
-						continue;
-					}
-					if ($time > $lastMTime) {
-						$lastMTime = $time;
-					}
-				}
-				if ($lastMTime > $this->last_mtime) {
-					$this->last_mtime = $time;
-				}
-			} elseif (!$this->settings['checkAllOnStart']) {
-				$files = array();
-			}
 		} else {
 			$suffix = '';
 			$sinceLast = time() - $this->last_mtime;
 			if ($this->last_mtime) {
-				$suffix = ' -mmin ' . $sinceLast / 60;
+				$suffix = ' -mmin ' . ceil($sinceLast / 60);
 			}
-			$cmd = 'find ' . $dir . ' ! -iwholename "*.svn*" \
-			! -iwholename "*.git*" ! -iwholename "*/tmp/*" ! -iwholename "*webroot*" \
-			! -iwholename "*Zend*" ! -iwholename "*simpletest*" ! -iwholename "*firephp*" \
-			! -iwholename "*jquery*" ! -iwholename "*Text*" -name "*.php" -type f' . $suffix;
+			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
+			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
+			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
+			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
-			$this->last_mtime = time();
+		}
+		if (!$this->last_mtime && !$this->settings['checkAllOnStart']) {
+			$files = array();
+		}
+		$lastMTime = 0;
+		foreach ($files as $key => $file) {
+			$time = filemtime($file);
+			if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
+				unset ($files[$key]);
+				continue;
+			}
+			if ($time > $lastMTime) {
+				$lastMTime = $time;
+			}
+		}
+		if ($lastMTime > $this->last_mtime) {
+			$this->last_mtime = $time;
 		}
 		if (!empty($this->settings['ignorePatterns'])) {
 			foreach ($files as $key => $file) {
@@ -418,7 +418,7 @@ class AutoTestShell extends Shell {
 				}
 			}
 		}
-		$files = array_unique(am($files, array_values((array)$this->fails)));
+		$files = array_unique($files);
 		sort($files);
 		return array_values($files);
 	}

@@ -339,6 +339,7 @@ class RepoShell extends Shell {
 			$this->settings['quiet'] = false;
 			$this->settings['logLevel'] = 'info';
 		}
+		$this->buildPaths();
 	}
 
 /**
@@ -447,10 +448,23 @@ class RepoShell extends Shell {
 			'file' => $file,
 		));
 		$this->checkString($string);
+		$result = false;
 		if (empty($this->errors[$this->current['file']])) {
-			return true;
+			$result = true;
 		}
-		return false;
+		if ($this->command != 'checkFile') {
+			return $result;
+		}
+
+		if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['notice']) {
+			$this->out($file . ' ', false);
+			$nl = true;
+		}
+		if ($result) {
+			$this->out('✔', $nl);
+		} else {
+			$this->out('✘', $nl);
+		}
 	}
 
 /**
@@ -528,7 +542,7 @@ class RepoShell extends Shell {
 						$newRegex = '/(.*?)' . substr($rule, 1);
 						preg_match_all($newRegex, $testString, $matches);
 						if ($matches) {
-							$lineNo = 1;
+							$lineNo = 0;
 							foreach($matches[0] as $match) {
 								$lineNo += substr_count($match, "\n");
 								$this->current['lineNo'] =  $lineNo;
@@ -625,9 +639,9 @@ class RepoShell extends Shell {
 			return true;
 		}
 		if (rtrim(APP, DS) === rtrim($this->params['root'] . DS . $this->params['app'], DS)) {
-			$cmd = 'cake testsuite ' . $type . ' case ' . $case;
+			$cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
 		} else {
-			$cmd = 'cake -app ' . $this->params['root'] . DS . $this->params['app'] . ' testsuite ' . $type . ' case ' . $case;
+			$cmd = $this->paths['console'] . ' -app ' . $this->params['root'] . DS . $this->params['app'] . ' testsuite ' . $type . ' case ' . $case;
 		}
 		if (isset($this->_testResults[$cmd])) {
 			return $this->_testResults[$cmd];
@@ -667,6 +681,16 @@ class RepoShell extends Shell {
 			}
 			return false;
 		}
+		return true;
+	}
+
+/**
+ * checkSkip method
+ *
+ * @return void
+ * @access protected
+ */
+	function _checkSkip() {
 		return true;
 	}
 
@@ -718,10 +742,10 @@ class RepoShell extends Shell {
 			$suffix[] = '-name "*.ctp"';
 		}
 		$suffix = '\( ' . implode (' -o ', $suffix) . ' \)';
-		$cmd = 'find ' . $this->params['working'] . ' ! -iwholename "*.svn*" \
-		! -iwholename "*.git*" ! -iwholename "*/tmp/*" ! -iwholename "*webroot*" \
-		! -iwholename "*Zend*" ! -iwholename "*simpletest*" ! -iwholename "*firephp*" \
-		! -iwholename "*jquery*" ! -iwholename "*Text*" ' . $suffix . ' -type f';
+		$cmd = 'find ' . $this->params['working'] . ' ! -ipath "*.svn*" \
+		! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
+		! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
+		! -iname "*jquery*" ! -ipath "*Text*" ' . $suffix . ' -type f';
 		$this->_log($cmd, null, 'debug');
 		exec($cmd, $out);
 		return $out;
@@ -896,5 +920,15 @@ class RepoShell extends Shell {
 	function _stop() {
 		$this->_log('Return value: ' . (int)$this->returnValue, null, 'debug');
 		return parent::_stop($this->returnValue);
+	}
+
+/**
+ * buildPaths method
+ *
+ * @return void
+ * @access public
+ */
+	function buildPaths() {
+		$this->paths = array('console' => array_pop(Configure::corePaths('cake')) . 'console' . DS . 'cake');
 	}
 }
