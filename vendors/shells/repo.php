@@ -175,11 +175,10 @@ class RepoShell extends Shell {
 			'indentedCommentBlock' => array(
 				'logLevel' => 'warning',
 				'rule' => '/[ \t]+\/\*\*(?![^\r\n]*@ignore)/s',
-				'vimTip' =>':v/./,/./-j',
 			),
 			'noSpaceAfterCommaInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]*,[^ \'"](?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]*\([^\r\n]*,[^ \'"](?![^\r\n]*@ignore)/s',
 			),
 			'noSpaceBetweenClosingBracketAndCurlyBrace' => array(
 				'logLevel' => 'warning',
@@ -187,23 +186,23 @@ class RepoShell extends Shell {
 			),
 			'spaceBeforeClosingBracketInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]* \)[^\r\n]*{(?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]* \)[^\r\n]*{(?![^\r\n]*@ignore)/s',
 			),
 			'spaceBeforeCommaInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]* ,(?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]* ,(?![^\r\n]*@ignore)/s',
 			),
 			'spaceBeforeFirstParameterInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]*\( (?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]*\( (?![^\r\n]*@ignore)/s',
 			),
 			'spaceBeforeOpeningBracketInFunctionCall' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*\w(->|::)[\w\d]+ \((?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*\w(->|::)[\w\d]+ \((?![^\r\n]*@ignore)/s',
 			),
 			'spaceBetweenFunctionNameAndBracket' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function &?\w+ \((?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function &?\w+ \((?![^\r\n]*@ignore)/s',
 			),
 			'spaceIndented' => array(
 				'logLevel' => 'warning',
@@ -331,6 +330,32 @@ class RepoShell extends Shell {
 		if (!empty($this->params['v'])) {
 			$this->settings['quiet'] = false;
 			$this->settings['logLevel'] = 'info';
+		}
+		if (!empty($this->params['mode'])) {
+			switch($this->params['mode']) {
+				case 'sanity':
+					$this->settings['rules'] = array(
+						'skipFile' => $this->settings['rules']['skipFile'],
+						'mergeConflict' => $this->settings['rules']['mergeConflict'],
+						'phpLint' => $this->settings['rules']['phpLint'],
+						'leadingWhitespace'
+					);
+					break;
+				case 'test':
+				case 'tests':
+					$this->settings['rules'] = array(
+						'passesTests' => $this->settings['rules']['pasesTests']
+					);
+					break;
+				default:
+					$rules = $this->settings['rules'];
+					$this->settings['rules'] = array();
+					foreach (explode($this->params['mode'], ',') as $rule) {
+						if (isset($rules['rule'])) {
+							$this->settings['rules'][$rule] = $rules[$rule];
+						}
+					}
+			}
 		}
 	}
 
