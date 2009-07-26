@@ -41,14 +41,20 @@ To use as a pre-commit hook for svn create/edit hooks/pre-commit on the reposito
 >>>
 #!/bin/sh
 TERM=linux
+export TERM
 CAKE=/cake/is/herex/console/cake
 
-$CAKE repo checkFiles pre-commit -repo $1 -txn $2
+$CAKE repo checkFiles pre-commit -repo $1 -txn $2 >&2
 <<<
 
 Notes:
 	on a Windows system, you should name the hook 'pre-commit.bat' or 'pre-commit.exe'
-	Don't be too strict with your policy as unlike with git you cannot force the commit
+	You can nominate a config file (on the svn server) using  the config switch:
+		cake repo ... -config /use/this/config/file
+	Users can override the pre-commit hook by including @noverify at the end of any line in their
+	commit message.
+	The svn repo can disable the @noverify flag by setting $config['disableNoverify'] in the config
+	file
 
 Using realtime
 ==============
