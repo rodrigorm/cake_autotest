@@ -618,7 +618,7 @@ class RepoShell extends Shell {
  * @access protected
  */
 	function _checkPassesTests() {
-		if (!preg_match('@\.php$@', $this->current['file']) || preg_match('@^tests[\\/]|[\\/]?tests[\\/]@', $this->current['file'])) {
+		if (!preg_match('@\.php$@', $this->current['file'])) {
 			return true;
 		}
 		$case = ltrim(str_replace('.php', '', $this->current['file']), DS);
