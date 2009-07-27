@@ -666,21 +666,25 @@ class RepoShell extends Shell {
 			$this->_log('Test not found: ' . $testFile, null, 'notice');
 			return true;
 		}
+		$cmdShort = $cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
 		if (rtrim(APP, DS) === rtrim($this->params['root'] . DS . $this->params['app'], DS)) {
-			$cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
-		} else {
-			$cmd = $this->paths['console'] . ' -app ' . $this->params['root'] . DS . $this->params['app'] . ' testsuite ' . $type . ' case ' . $case;
+			$cmd .= '  -app ' . $this->params['root'] . DS . $this->params['app'];
 		}
 		if (isset($this->_testResults[$cmd])) {
 			return $this->_testResults[$cmd];
 		}
-		$this->out($cmd . ' ', false);
 		$return = $this->_exec($cmd, $out);
+		$result = end($out);
+		if (!trim($result)) {
+			$result = 'test did not complete';
+		}
+		$this->out($result . ' ', false);
 		if($return) {
 			$this->_log($cmd, null, 'info');
 			foreach(array_slice($out, 10) as $line) {
 				$this->_log($line, null, 'info');
 			}
+			$cmd = str_replace($this->paths['console'], 'cake', $cmdShort);
 			$this->_testResults[$cmd] = "'$cmd' failed";
 			return "'$cmd' failed'";
 		}
