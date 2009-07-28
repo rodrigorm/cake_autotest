@@ -178,11 +178,10 @@ class RepoShell extends Shell {
 			'indentedCommentBlock' => array(
 				'logLevel' => 'warning',
 				'rule' => '/[ \t]+\/\*\*(?![^\r\n]*@ignore)/s',
-				'vimTip' =>':v/./,/./-j',
 			),
 			'noSpaceAfterCommaInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]*,[^ \'"](?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]*\([^\r\n]*,[^ \'"](?![^\r\n]*@ignore)/s',
 			),
 			'noSpaceBetweenClosingBracketAndCurlyBrace' => array(
 				'logLevel' => 'warning',
@@ -190,23 +189,23 @@ class RepoShell extends Shell {
 			),
 			'spaceBeforeClosingBracketInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]* \)[^\r\n]*{(?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]* \)[^\r\n]*{(?![^\r\n]*@ignore)/s',
 			),
 			'spaceBeforeCommaInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]* ,(?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]* ,(?![^\r\n]*@ignore)/s',
 			),
 			'spaceBeforeFirstParameterInFunctionDeclaration' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function[^\r\n]*\( (?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function[^\r\n]*\( (?![^\r\n]*@ignore)/s',
 			),
 			'spaceBeforeOpeningBracketInFunctionCall' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*\w(->|::)[\w\d]+ \((?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*\w(->|::)[\w\d]+ \((?![^\r\n]*@ignore)/s',
 			),
 			'spaceBetweenFunctionNameAndBracket' => array(
 				'logLevel' => 'warning',
-				'rule' => '/\n[^\r\n\'"]*function &?\w+ \((?![^\r\n]*@ignore)/s',
+				'rule' => '/\n[^\r\n\'\*"]*function &?\w+ \((?![^\r\n]*@ignore)/s',
 			),
 			'spaceIndented' => array(
 				'logLevel' => 'warning',
@@ -341,6 +340,32 @@ class RepoShell extends Shell {
 		if (!empty($this->params['v'])) {
 			$this->settings['quiet'] = false;
 			$this->settings['logLevel'] = 'info';
+		}
+		if (!empty($this->params['mode'])) {
+			switch($this->params['mode']) {
+				case 'sanity':
+					$this->settings['rules'] = array(
+						'skipFile' => $this->settings['rules']['skipFile'],
+						'mergeConflict' => $this->settings['rules']['mergeConflict'],
+						'phpLint' => $this->settings['rules']['phpLint'],
+						'leadingWhitespace'
+					);
+					break;
+				case 'test':
+				case 'tests':
+					$this->settings['rules'] = array(
+						'passesTests' => $this->settings['rules']['pasesTests']
+					);
+					break;
+				default:
+					$rules = $this->settings['rules'];
+					$this->settings['rules'] = array();
+					foreach (explode($this->params['mode'], ',') as $rule) {
+						if (isset($rules['rule'])) {
+							$this->settings['rules'][$rule] = $rules[$rule];
+						}
+					}
+			}
 		}
 		$this->buildPaths();
 	}
@@ -558,7 +583,7 @@ class RepoShell extends Shell {
  * @access protected
  */
 	function _checkPassesTests() {
-		if (!preg_match('@\.php$@', $this->current['file']) || preg_match('@^tests[\\/]|[\\/]?tests[\\/]@', $this->current['file'])) {
+		if (!preg_match('@\.php$@', $this->current['file'])) {
 			return true;
 		}
 		$case = ltrim(str_replace('.php', '', $this->current['file']), DS);
@@ -606,21 +631,25 @@ class RepoShell extends Shell {
 			$this->_log('Test not found: ' . $testFile, null, 'notice');
 			return true;
 		}
+		$cmdShort = $cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
 		if (rtrim(APP, DS) === rtrim($this->params['root'] . DS . $this->params['app'], DS)) {
-			$cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
-		} else {
-			$cmd = $this->paths['console'] . ' -app ' . $this->params['root'] . DS . $this->params['app'] . ' testsuite ' . $type . ' case ' . $case;
+			$cmd .= '  -app ' . $this->params['root'] . DS . $this->params['app'];
 		}
 		if (isset($this->_testResults[$cmd])) {
 			return $this->_testResults[$cmd];
 		}
-		$this->out($cmd . ' ', false);
 		$return = $this->_exec($cmd, $out);
+		$result = end($out);
+		if (!trim($result)) {
+			$result = 'test did not complete';
+		}
+		$this->out($result . ' ', false);
 		if($return) {
 			$this->_log($cmd, null, 'info');
 			foreach(array_slice($out, 10) as $line) {
 				$this->_log($line, null, 'info');
 			}
+			$cmd = str_replace($this->paths['console'], 'cake', $cmdShort);
 			$this->_testResults[$cmd] = "'$cmd' failed";
 			return "'$cmd' failed'";
 		}
