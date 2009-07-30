@@ -435,6 +435,9 @@ class RepoShell extends Shell {
 				return;
 			}
 		}
+		if (preg_match('@^' . ROOT . DS . '@', $file)) {
+			$file = str_replace(ROOT . DS, '', $file);
+		}
 		$string = file_get_contents($file);
 		$this->_reset(array(
 			'file' => $file,
