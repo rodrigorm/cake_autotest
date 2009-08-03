@@ -16,6 +16,16 @@ Notify - send status messages
 Autotest - monitor a folder for changes, and call the repo shell for any changed files
 Repo - syntax checks and test-case running by file name
 
+For cake 1.3+ the process is even simpler:
+	app
+	someotherapp
+	cake
+	plugins <- new folder in 1.3
+	vendors
+
+cd plugins
+git clone git://github.com/rodrigorm/cake_autotest.git autotest
+
 Using as a git hook
 ==================
 To use as a pre-commit hook, create/edit .git/hooks/pre-commit with the following contents:
