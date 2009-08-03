@@ -948,6 +948,19 @@ class RepoShell extends Shell {
 	}
 
 /**
+ * welcome method
+ *
+ * @return void
+ * @access protected
+ */
+	function _welcome() {
+		if (!empty($this->params['q']) || !empty($this->params['quiet'])) {
+			return;
+		}
+		return parent::_welcome();
+	}
+
+/**
  * buildPaths method
  *
  * @return void
