@@ -396,10 +396,7 @@ class RepoShell extends Shell {
 		$this->settings['_supressMessages'] = true;
 		$nl = false;
 		foreach ($files as $i => $file) {
-			if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['notice']) {
-				$this->out($file . ' ', false);
-				$nl = true;
-			}
+			$this->out($file . ' ', false);
 			if (!file_exists($file) || !preg_match($this->settings['fileNamePattern'], $file)) {
 				$this->out('❯', $nl);
 				continue;
