@@ -367,7 +367,7 @@ class RepoShell extends Shell {
 					}
 			}
 		}
-		$this->buildPaths();
+		$this->_buildPaths();
 	}
 
 /**
@@ -589,6 +589,41 @@ class RepoShell extends Shell {
 	}
 
 /**
+ * linkPreCommit method
+ *
+ * @return void
+ * @access public
+ */
+	function linkPreCommit() {
+		$source = realpath(dirname(dirname(__FILE__))) . DS . 'pre-commit';
+		$files = $this->_find('pre-commit');
+		if (DS === '\\') {
+			foreach($files as $file) {
+				$file = realpath($file) . '.bat';
+				if (copy($source, $file)) {
+					$this->out($file, ' created');
+				} else {
+					$this->out($file, ' couldn\'t be created');
+				}
+			}
+		} else {
+			foreach($files as $file) {
+				$realfile = realpath($file);
+				if ($realfile === $source) {
+					$this->out($file, ' already linked');
+					continue;
+				}
+				rename($file, $file . '.bak');
+				if (symlink($source, $file)) {
+					$this->out($file, ' link created');
+				} else {
+					$this->out($file, ' link couldn\'t be created');
+				}
+			}
+		}
+	}
+
+/**
  * checkLeadingWhitespace method
  *
  * @param string $string ''
@@ -711,6 +746,27 @@ class RepoShell extends Shell {
 			return false;
 		}
 		return true;
+	}
+
+/**
+ * find method
+ *
+ * @param string $pattern ''
+ * @return void
+ * @access protected
+ */
+	function _find($pattern = '') {
+		if (!$pattern) {
+			return array();
+		}
+		if (DS === '\\') {
+			$Folder = new Folder('.');
+			return $Folder->findRecursive($pattern);
+		}
+		$cmd = 'find -name "' . $pattern . '"';
+		$this->_log($cmd, null, 'debug');
+		exec($cmd, $out);
+		return $out;
 	}
 
 /**
@@ -961,9 +1017,9 @@ class RepoShell extends Shell {
  * buildPaths method
  *
  * @return void
- * @access public
+ * @access protected
  */
-	function buildPaths() {
+	function _buildPaths() {
 		$this->paths = array('console' => array_pop(Configure::corePaths('cake')) . 'console' . DS . 'cake');
 	}
 }
