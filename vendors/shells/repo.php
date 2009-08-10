@@ -394,17 +394,16 @@ class RepoShell extends Shell {
 		$suffix = '';
 		$this->out(sprintf('%s Files found' . $suffix, $count));
 		$this->settings['_supressMessages'] = true;
-		$nl = false;
 		foreach ($files as $i => $file) {
 			$this->out($file . ' ', false);
 			if (!file_exists($file) || !preg_match($this->settings['fileNamePattern'], $file)) {
-				$this->out('❯', $nl);
+				$this->out('❯');
 				continue;
 			}
 			if ($this->checkFile($file)) {
-				$this->out('✔', $nl);
+				$this->out('✔');
 			} else {
-				$this->out('✘', $nl);
+				$this->out('✘');
 			}
 		}
 		$this->out(null);
@@ -1001,9 +1000,9 @@ class RepoShell extends Shell {
 		$errors = count($this->errors);
 		if ($errors) {
 			if ($errors == 1) {
-				$this->out(sprintf('%s Files checked, FAILS:', $filesChecked));
+				$this->out(sprintf('%s Files checked, Errors:', $count));
 			} else {
-				$this->out(sprintf('%s Files checked, %s FAILS:', $filesChecked, $errors));
+				$this->out(sprintf('%s Files checked, %s with errors:', $count, $errors));
 			}
 			foreach($this->errors as $file => $messages) {
 				$this->out('	' . $file);
@@ -1026,8 +1025,14 @@ class RepoShell extends Shell {
 					}
 				}
 			}
+			/*
+			if (!empty($this->settings['vimTips'])) { // @TODO
+				file_put_contents('errors.err', implode("\n", array_filter($errors)));
+				echo "type 'vim -q errors.err' to review failures\n";
+			}
+			*/
 		} else {
-			$this->out(sprintf('%s Files checked, No errors found', $filesChecked));
+			$this->out(sprintf('%s Files checked, No errors found', $count));
 		}
 	}
 }
