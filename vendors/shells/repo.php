@@ -700,7 +700,7 @@ class RepoShell extends Shell {
 			$cmd .= '  -app ' . $this->params['root'] . DS . $this->params['app'];
 		}
 		if (isset($this->_testResults[$cmd])) {
-			return false;
+			return $this->_testResults[$cmd];
 		}
 		$this->_testResults['_summary']['caseTotal']++;
 		$return = $this->_exec($cmd, $out);
@@ -970,9 +970,12 @@ class RepoShell extends Shell {
 			return false;
 		}
 		if ($type === 'core') {
+			$libs = strpos($case, 'libs' . DS);
+			if ($libs) {
+				$libs = 'libs' . DS;
+			}
 			$case = preg_replace('@.*cake[\\\/](libs[\\\/])?@', '', $case);
-			debug ($case); die;
-			return array($type, $case);
+			return array($type, $case, CAKE_TESTS . 'cases' . DS . $libs . $case . '.test.php');
 		}
 		preg_match('@(.*[\\\/])(?:(?:config|controllers|locale|models|tests|vendors|views)[\\\/])@', $case, $matches);
 		$base = '';
