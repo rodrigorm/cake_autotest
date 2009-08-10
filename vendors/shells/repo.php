@@ -1,6 +1,4 @@
 <?php
-/* SVN FILE: $Id$ */
-
 /**
  * A utility shell to do all the things you want your repo to do for you upon commit/merge
  *
@@ -30,9 +28,6 @@
  * @package       base
  * @subpackage    base.vendors.shells
  * @since         v 1.0 (03-Jul-2009)
- * @version       $Revision$
- * @modifiedby    $LastChangedBy$
- * @lastmodified  $Date$
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 
@@ -40,8 +35,8 @@
  * RepoShell class
  *
  * @uses          Shell
- * @package       base
- * @subpackage    base.vendors.shells
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  */
 class RepoShell extends Shell {
 

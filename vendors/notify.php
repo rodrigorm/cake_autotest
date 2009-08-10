@@ -1,21 +1,19 @@
 <?php
 /**
- * Short description for notify.php
- *
- * Long description for notify.php
+ * Send status messages to the OS
  *
  * PHP version 5
  *
- * Copyright (c) 2009, Andy Dawson
+ * Copyright (c) 2009, Rodrigo Moyle
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
  * @filesource
- * @copyright     Copyright (c) 2009, Andy Dawson
- * @link          www.ad7six.com
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors
+ * @copyright     Copyright (c) 2009, Rodrigo Moyle
+ * @link          blog.rodrigorm.com.br
+ * @package       autotest
+ * @subpackage    autotest.vendors
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
@@ -24,8 +22,8 @@
  * Notify class
  *
  * @uses
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors
+ * @package       autotest
+ * @subpackage    autotest.vendors
  */
 class Notify {
 

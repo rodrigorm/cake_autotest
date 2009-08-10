@@ -6,14 +6,14 @@
  *
  * PHP version 4 and 5
  *
- * Copyright (c) 2009, Andy Dawson
+ * Copyright (c) 2009, Rodrigo Moyle
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
  * @filesource
- * @copyright     Copyright (c) 2009, Andy Dawson
- * @link          www.ad7six.com
+ * @copyright     Copyright (c) 2009, Rodrigo Moyle
+ * @link          blog.rodrigorm.com.br
  * @package       autotest
  * @subpackage    autotest.tests.cases.shells
  * @since         v 1.0 (10-Aug-2009)

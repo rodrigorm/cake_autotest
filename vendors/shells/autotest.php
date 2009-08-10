@@ -1,21 +1,21 @@
 <?php
 /**
- * Short description for autotest.php
+ * A shell for monitoring a folder and automatically checking if changes pass test cases/sanity/syntax checks
  *
  * Long description for autotest.php
  *
- * PHP version 4 and 5
+ * PHP version 5
  *
- * Copyright (c) 2009, Andy Dawson
+ * Copyright (c) 2009, Rodrigo Moyle
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
  * @filesource
- * @copyright     Copyright (c) 2009, Andy Dawson
- * @link          www.ad7six.com
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors.shells
+ * @copyright     Copyright (c) 2009, Rodrigo Moyle
+ * @link          blog.rodrigorm.com.br
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
@@ -29,8 +29,8 @@ App::import('Vendor', 'Autotest.Notify');
  * Hooks class
  *
  * @uses
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors.shells
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  */
 class Hooks {
 	const all_good    = 'all_good';
@@ -43,22 +43,14 @@ class Hooks {
 	const waiting     = 'waiting';
 	const green       = 'green';
 	const red         = 'red';
-
-/**
- * construct method
- *
- * @return void
- * @access private
- */
-	private function __construct() {}
 }
 
 /**
  * AutoTestShell class
  *
  * @uses          Shell
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors.shells
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  */
 class AutoTestShell extends Shell {
 

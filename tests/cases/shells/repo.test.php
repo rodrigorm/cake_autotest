@@ -1,12 +1,10 @@
 <?php
-/* SVN FILE: $Id$ */
-
 /**
  * Short description for repo.test.php
  *
  * Long description for repo.test.php
  *
- * PHP versions 4 and 5
+ * PHP versions 5
  *
  * Copyright (c) 2009, Andy Dawson
  *
@@ -19,9 +17,6 @@
  * @package       base
  * @subpackage    base.tests.cases.shells
  * @since         v 1.0 (06-Jul-2009)
- * @version       $Revision$
- * @modifiedby    $LastChangedBy$
- * @lastmodified  $Date$
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 App::import('Core', 'Shell');
@@ -388,6 +383,12 @@ class RepoShellTest extends CakeTestCase {
 		$this->assertEqual($result, $expected);
 	}
 
+/**
+ * testMapHelperToTest method
+ *
+ * @return void
+ * @access public
+ */
 	function testMapHelperToTest() {
 		$expected = array(
 			'app',
