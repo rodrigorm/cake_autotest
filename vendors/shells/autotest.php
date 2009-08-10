@@ -63,20 +63,20 @@ class Hooks {
 class AutoTestShell extends Shell {
 
 /**
- * last_mtime property
+ * lastMTime property
  *
  * @var mixed null
  * @access public
  */
-	public $last_mtime    = null;
+	public $lastMTime = null;
 
 /**
- * files_to_test property
+ * filesToTest property
  *
  * @var array
  * @access public
  */
-	public $files_to_test = array();
+	public $filesToTest = array();
 
 /**
  * results property
@@ -84,12 +84,12 @@ class AutoTestShell extends Shell {
  * @var mixed null
  * @access public
  */
-	public $results       = null;
+	public $results = null;
 
 /**
  * Enter Description Here
  */
-	static $hooks      = array();
+	static $hooks = array();
 
 /**
  * fails property
@@ -113,7 +113,8 @@ class AutoTestShell extends Shell {
 			'/(config|locale|tmp|webroot)\//'
 		),
 		'notify' => null,
-		'checkAllOnStart' => true
+		'checkAllOnStart' => true,
+		'mode' => null
 	);
 
 /**
@@ -123,12 +124,14 @@ class AutoTestShell extends Shell {
  * @access public
  */
 	function main() {
-		App::import('Core', 'Folder');
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
 		}
 		if (!empty($this->params['notify'])) {
 			$this->settings['notify'] = $this->params['notify'];
+		}
+		if (!empty($this->params['mode'])) {
+			$this->settings['mode'] = $this->params['mode'];
 		}
 
 		Notify::$method = $this->settings['notify'];
@@ -199,9 +202,11 @@ class AutoTestShell extends Shell {
  */
 	function _runTests() {
 		$this->_hook(Hooks::run_command);
-		$this->files_to_test = $this->_findFiles();
-		if (!$this->files_to_test) {
-			return;
+		if (!$this->filesToTest) {
+			$this->filesToTest = $this->_findFiles();
+			if (!$this->filesToTest) {
+				return;
+			}
 		}
 
 		$this->results = array(
@@ -210,8 +215,9 @@ class AutoTestShell extends Shell {
 			'failed' => array(),
 			'unknown' => array(),
 		);
-		foreach($this->files_to_test as $file) {
+		foreach($this->filesToTest as $i => $file) {
 			$result = $this->_runTest($file);
+			$file = str_replace($this->params['working'] . DS, '', $file);
 			if (strpos($result, '✔')) {
 				$this->results['passed'][$file] = '✔';//$result;
 				unset($this->fails[$file]);
@@ -242,7 +248,6 @@ class AutoTestShell extends Shell {
 		if (empty($this->results['failed']) && empty($this->results['unknown'])) {
 			$this->_hook(Hooks::green, array_filter($this->results));
 		} else {
-			unset ($this->results['passedCount']);
 			$this->_hook(Hooks::red, (int)$this->results['failedCount'], array_filter($this->results));
 		}
 	}
@@ -255,7 +260,10 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _runTest($file) {
-		$cmd = $this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file;
+		$cmd = $this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file . ' -q -noclear';
+		if ($this->settings['mode']) {
+			$cmd .= ' -mode ' . $this->settings['mode'];
+		}
 		$out = exec($cmd, $_, $return);
 		return implode($_, "\n");
 	}
@@ -272,7 +280,7 @@ class AutoTestShell extends Shell {
 			sleep($this->settings['interval'] * 60);
 			$changedFiles = $this->_findFiles();
 			$files = array_unique(am($changedFiles, array_values((array)$this->fails)));
-			$this->files_to_test = $files;
+			$this->filesToTest = $files;
 		} while (!$changedFiles);
 	}
 
@@ -283,7 +291,7 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _allGood() {
-		return empty($this->files_to_test);
+		return empty($this->fails);
 	}
 
 /**
@@ -308,8 +316,9 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _reset() {
-		$this->files_to_test = null;
-		$this->last_mtime = null;
+		$this->fails = null;
+		$this->filesToTest = null;
+		$this->lastMTime = null;
 
 		$this->_hook(Hooks::reset);
 	}
@@ -382,15 +391,16 @@ class AutoTestShell extends Shell {
 		}
 
 		if (DS === '\\') {
+			App::import('Core', 'Folder');
 			if (empty($this->Folder)) {
 				$this->Folder = new Folder($dir);
 			}
 			$files = $this->Folder->findRecursive('.*\.php$');
-			if ($this->last_mtime) {
+			if ($this->lastMTime) {
 				$lastMTime = 0;
 				foreach ($files as $key => $file) {
 					$time = filemtime($file);
-					if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
+					if (!empty($this->lastMTime) && $time <= $this->lastMTime) {
 						unset ($files[$key]);
 						continue;
 					}
@@ -398,16 +408,16 @@ class AutoTestShell extends Shell {
 						$lastMTime = $time;
 					}
 				}
-				if ($lastMTime > $this->last_mtime) {
-					$this->last_mtime = $time;
+				if ($lastMTime > $this->lastMTime) {
+					$this->lastMTime = $time;
 				}
 			} elseif (!$this->settings['checkAllOnStart']) {
 				$files = array();
 			}
 		} else {
 			$suffix = '';
-			$sinceLast = time() - $this->last_mtime;
-			if ($this->last_mtime) {
+			$sinceLast = time() - $this->lastMTime;
+			if ($this->lastMTime) {
 				$suffix = ' -mmin ' . $sinceLast / 60;
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
@@ -415,7 +425,7 @@ class AutoTestShell extends Shell {
 			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
-			$this->last_mtime = time();
+			$this->lastMTime = time();
 		}
 		if (!empty($this->settings['ignorePatterns'])) {
 			foreach ($files as $key => $file) {

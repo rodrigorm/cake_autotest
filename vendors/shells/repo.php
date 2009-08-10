@@ -364,7 +364,7 @@ class RepoShell extends Shell {
 				case 'test':
 				case 'tests':
 					$this->settings['rules'] = array(
-						'passesTests' => $this->settings['rules']['pasesTests']
+						'passesTests' => $this->settings['rules']['passesTests']
 					);
 					break;
 				default:
@@ -475,6 +475,7 @@ class RepoShell extends Shell {
 		if (!$file) {
 			if (!empty($this->args) && file_exists($this->args[0])) {
 				$file = $this->args[0];
+				$this->out(str_replace($this->params['working'] . DS, '', $file) . ' ', false);
 			} else {
 				$this->out("No arguments, or file doesn't exist");
 				return;
@@ -495,12 +496,11 @@ class RepoShell extends Shell {
 
 		if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['notice']) {
 			$this->out($file . ' ', false);
-			$nl = true;
 		}
 		if ($result) {
-			$this->out('✔', $nl);
+			$this->out('✔');
 		} else {
-			$this->out('✘', $nl);
+			$this->out('✘');
 		}
 	}
 

@@ -25,13 +25,11 @@ if (!class_exists('ShellDispatcher')) {
 	require CAKE . 'console' .  DS . 'cake.php';
 	ob_end_clean();
 }
-
 Mock::generate('ShellDispatcher');
 
 App::import('Core', 'Folder');
 
-App::import('Vendor', 'autotest.shells/autotest');
-
+App::import('Shell', 'Autotest.Autotest');
 Mock::generatePartial(
 	'AutoTestShell',
 	'AutoTestShellTestVersion',
@@ -39,11 +37,6 @@ Mock::generatePartial(
 );
 
 define('TEST_APP', dirname(dirname(dirname(__FILE__))) . DS . 'test_app');
-define('PASS_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1/1 test cases complete: 9 passes.\n");
-
-define('FAIL_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /Volumes/Sites/Cinemenu/site/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1) Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n\tin testHandleResults\n\tin AutoTestTestCase\n\tin /Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php\nFAIL->/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php->AutoTestTestCase->testHandleResults->Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n1/1 test cases complete: 10 passes, 1 fails.\n");
-
-define('ERROR_OUTPUT', "Welcome to CakePHP v1.2.0.7692 RC3 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case models/datasources/twitter_source\nPHP Parse error:  syntax error, unexpected ')', expecting '&' or T_VARIABLE in\n/Users/rodrigomoyle/Desktop/Code/mkt/natal2008/app/tests/cases/models/datasources/twitter_source.test.php on line 5");
 
 /**
  * AutoTestTestCase class
@@ -114,7 +107,7 @@ class AutoTestTestCase extends CakeTestCase {
 		);
 		$result = $this->AutoTest->_findFiles();
 		$this->assertEqual($result, $expected);
-		$this->AutoTest->last_mtime = null;
+		$this->AutoTest->lastMTime = null;
 	}
 
 /**
@@ -135,7 +128,7 @@ class AutoTestTestCase extends CakeTestCase {
 		);
 		$result = $this->AutoTest->_findFiles();
 		$this->assertEqual($result, $expected);
-		$this->AutoTest->last_mtime = null;
+		$this->AutoTest->lastMTime = null;
 	}
 
 /**
@@ -147,7 +140,7 @@ class AutoTestTestCase extends CakeTestCase {
 	function testFindFilesToTest() {
 		$time = mktime();
 		$past = $time - 1;
-		$this->AutoTest->last_mtime = $past;
+		$this->AutoTest->lastMTime = $past;
 		touch(TEST_APP . DS . 'controllers' . DS . 'posts_controller.php', $time);
 
 		$expected = array(
@@ -166,23 +159,23 @@ class AutoTestTestCase extends CakeTestCase {
 	function testPass() {
 		$this->AutoTest->params['working'] = TEST_APP . DS . 'controllers';
 		$base = TEST_APP . DS . 'controllers' . DS;
-		$testFile = $base . 'posts_controller.php';
+		$testFile = 'posts_controller.php';
 		$Folder = new Folder($base);
 
 		foreach($Folder->find() as $file) {
-			if ($file === basename($testFile)) {
-				touch($testFile);
+			if ($file === $testFile) {
+				touch($base . $testFile);
 			} else {
 				$prev = time() - 60 * 60;
 				touch($base . $file, $prev, $prev);
 			}
 		}
-		$this->AutoTest->last_mtime = time() - 1;
+		$this->AutoTest->lastMTime = time() - 1;
 		$this->AutoTest->_runTests();
 
 		$expected = array(
 			'passed' => array(
-				$testFile => '✔'
+				'posts_controller.php' => '✔'
 			),
 			'skipped' => array(),
 			'failed' => array(),
@@ -205,22 +198,22 @@ class AutoTestTestCase extends CakeTestCase {
 	function testFail() {
 		$this->AutoTest->params['working'] = TEST_APP . DS . 'controllers';
 		$base = TEST_APP . DS . 'controllers' . DS;
-		$testFile = $base . 'other_controller.php';
+		$testFile = 'other_controller.php';
 		$Folder = new Folder($base);
 
-		$File = new File($testFile);
+		$File = new File($base . $testFile);
 		$File->write('<?php junk');
 
 		foreach($Folder->find() as $file) {
-			if ($file === basename($testFile)) {
-				touch($testFile);
+			if ($file === $testFile) {
+				touch($base . $testFile);
 			} else {
 				$prev = time() - 60 * 60;
 				touch($base . $file, $prev, $prev);
 			}
 		}
 
-		$this->AutoTest->last_mtime = time() - 1;
+		$this->AutoTest->lastMTime = time() - 1;
 		$this->AutoTest->_runTests();
 
 		$expected = array(
@@ -230,6 +223,7 @@ class AutoTestTestCase extends CakeTestCase {
 				$testFile => '✘'
 			),
 			'unknown' => array(),
+	        'passedCount' => 0,
 	        'skippedCount' => 0,
 	        'failedCount' => 1,
 			'unknownCount' => 0,
@@ -252,9 +246,9 @@ class AutoTestTestCase extends CakeTestCase {
 		$time = strtotime('+1 second');
 		$future = strtotime('+2 seconds');
 
-		$this->AutoTest->last_mtime = $time;
+		$this->AutoTest->lastMTime = $time;
 		touch($testfile, $future);
 		$this->AutoTest->_waitForChanges();
-		$this->assertEqual($this->AutoTest->files_to_test, array($testfile));
+		$this->assertEqual($this->AutoTest->filesToTest, array($testfile));
 	}
 }
