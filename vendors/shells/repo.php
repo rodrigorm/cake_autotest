@@ -273,7 +273,15 @@ class RepoShell extends Shell {
  * @var array
  * @access protected
  */
-	var $_testResults = array();
+	var $_testResults = array(
+		'_summary' => array(
+			'caseTotal' => 0,
+			'casePass' => 0,
+			'passes' => 0,
+			'fails' => 0,
+			'exceptions' => 0,
+		)
+	);
 
 /**
  * help method
@@ -446,6 +454,9 @@ class RepoShell extends Shell {
 		} else {
 			$this->out(sprintf('%s Files checked, No errors found', $count));
 		}
+		extract ($this->_testResults['_summary']);
+		$this->out(sprintf('%s/%s Test cases: %s passes, %s fails, %s exceptions.',
+			$casePass, $caseTotal, $passes, $fails, $exceptions));
 		$this->_stop();
 	}
 
@@ -595,10 +606,33 @@ class RepoShell extends Shell {
  */
 	function linkPreCommit() {
 		$source = realpath(dirname(dirname(__FILE__))) . DS . 'pre-commit';
-		$files = $this->_find('pre-commit');
+		$files = am($this->_find('pre-commit.sample'), $this->_find('pre-commit'));
+		$files = array_unique($files);
+		foreach($files as &$file) {
+			$file = str_replace('.sample', '', $file);
+		}
+		$files = array_unique($files);
+		$total = count($files);
+
+		foreach($files as &$file) {
+			$file = str_replace('.sample', '', $file);
+		}
+		if ($key = array_search($source, $files)) {
+			unset ($files[$key]);
+		}
+		$files = array_unique($files);
+		$unique = count($files);
+		$this->out($unique . ' pre-commit files found');
+
+		foreach($files as &$file) {
+			$file = realpath($file);
+		}
+		$files = array_filter(array_unique($files));
+		$toProcess = count($files);
+		$this->out($toProcess . ' pre-commit files to process');
 		if (DS === '\\') {
 			foreach($files as $file) {
-				$file = realpath($file) . '.bat';
+				$file .= '.bat';
 				if (copy($source, $file)) {
 					$this->out($file, ' created');
 				} else {
@@ -607,11 +641,6 @@ class RepoShell extends Shell {
 			}
 		} else {
 			foreach($files as $file) {
-				$realfile = realpath($file);
-				if ($realfile === $source) {
-					$this->out($file, ' already linked');
-					continue;
-				}
 				rename($file, $file . '.bak');
 				if (symlink($source, $file)) {
 					$this->out($file, ' link created');
@@ -649,47 +678,12 @@ class RepoShell extends Shell {
  * @access protected
  */
 	function _checkPassesTests() {
-		if (!preg_match('@\.php$@', $this->current['file'])) {
+		$test = $this->_mapToTest($this->current['file']);
+		if (!$test) {
 			return true;
 		}
-		$case = ltrim(str_replace('.php', '', $this->current['file']), DS);
-		if (preg_match('@^cake' . DS . '@', $case)) {
-			$type = 'core';
-			$case = preg_replace('@^cake' . DS . '@', '', $case);
-			$testFile = CAKE_TESTS . 'cases' . DS . $case . '.test.php';
-			$case = preg_replace('@^libs' . DS . '@', '', $case);
-		} else {
-			$type = 'app';
-			if (preg_match('@^' . APP_DIR . DS . '@', $case)) {
-				$case = str_replace(APP_DIR . DS, '', $case);
-			}
-			if (preg_match('@^plugins' . DS . '([^\\/]*)@', $case, $match)) {
-				$type = $match[1];
-				$case = str_replace('plugins' . DS . $type . DS, '', $case);
-			}
-			$map = array(
-				'controllers' . DS . 'components' => 'components',
-				'models' . DS . 'behaviors' => 'behaviors',
-				'models' . DS . 'datasources' => 'datasources',
-				'views' . DS . 'helpers' => 'helpers',
-				'vendors' . DS . 'shells' => 'shells',
-			);
-			foreach ($map as $path => $_type) {
-				if (strpos($this->current['file'], $path) === 0) {
-					$case = str_replace($path, $_type, $case);
-					break;
-				}
-			}
-			if ($type === 'app') {
-				$testFile = TESTS . 'cases' . DS . $case . '.test.php';
-			} else {
-				$testFile = APP . 'plugins' . DS . $type . DS . 'tests' . DS . 'cases' . DS . $case . '.test.php';
-			}
-		}
-		if (strpos($this->current['file'], '.test.') !== false) {
-			$case = preg_replace('@^tests' . DS . '[^\\/]*' . DS . '@', '', $case);
-			$case = str_replace('.test', '', $case);
-		} elseif (!file_exists($testFile)) {
+		list($type, $case, $testFile) = $test;
+		if (!file_exists($testFile)) {
 			if (isset($this->settings['rules']['passesTests']) &&
 				!empty($this->settings['rules']['passesTests']['failMissingTests'])) {
 				return 'No test exists';
@@ -697,6 +691,7 @@ class RepoShell extends Shell {
 			$this->_log('Test not found: ' . $testFile, null, 'notice');
 			return true;
 		}
+
 		$cmdShort = $cmd = $this->paths['console'] . ' testsuite ' . $type . ' case ' . $case;
 		if (rtrim(APP, DS) === rtrim($this->params['root'] . DS . $this->params['app'], DS)) {
 			$cmd .= '  -app ' . $this->params['root'] . DS . $this->params['app'];
@@ -704,10 +699,18 @@ class RepoShell extends Shell {
 		if (isset($this->_testResults[$cmd])) {
 			return $this->_testResults[$cmd];
 		}
+		$this->_testResults['_summary']['caseTotal']++;
 		$return = $this->_exec($cmd, $out);
 		$result = end($out);
 		if (!trim($result)) {
 			$result = 'test did not complete';
+		}
+		if (preg_match_all('@(\d+) (passes|fails|exceptions)@', $result, $matches)) {
+			if ($matches) {
+				foreach ($matches[2] as $i => $type) {
+					$this->_testResults['_summary'][$type] += $matches[1][$i];
+				}
+			}
 		}
 		$this->out($result . ' ', false);
 		if($return) {
@@ -718,6 +721,8 @@ class RepoShell extends Shell {
 			$cmd = str_replace($this->paths['console'], 'cake', $cmdShort);
 			$this->_testResults[$cmd] = "'$cmd' failed";
 			return "'$cmd' failed'";
+		} else {
+			$this->_testResults['_summary']['casePass']++;
 		}
 		$this->_testResults[$cmd] = true;
 		return true;
@@ -936,6 +941,71 @@ class RepoShell extends Shell {
 			return;
 		}
 		$this->out($string);
+	}
+
+/**
+ * mapToTest method
+ *
+ * @param mixed $file
+ * @return void
+ * @access protected
+ */
+	function _mapToTest($file) {
+		if (!preg_match('@\.php$@', $file)) {
+			return false;
+		}
+		$type = $this->_testType($file);
+		$case = ltrim(str_replace('.php', '', $file), DS);
+		if (preg_match('@tests[\\\/]@', $file)) {
+			if (preg_match('@tests[\\\/]cases[\\\/]@', $file)) {
+				if ($case = preg_replace('@.*tests[\\\/]cases[\\\/]@', '', $case)) {
+					$case = str_replace('.test', '', $case);
+					return array($type, $case, $file);
+				}
+			}
+			return false;
+		}
+		if ($type === 'core') {
+			$case = preg_replace('@.*cake[\\\/](libs[\\\/])?@', '', $case);
+			debug ($case); die;
+			return array($type, $case);
+		}
+		preg_match('@(.*[\\\/])(?:(?:config|controllers|locale|models|tests|vendors|views)[\\\/])@', $case, $matches);
+		$base = '';
+		if ($matches) {
+			$base = $matches[1];
+			$case = str_replace($base, '', $case);
+		}
+		$map = array(
+			'controllers' . DS . 'components' => 'components',
+			'models' . DS . 'behaviors' => 'behaviors',
+			'models' . DS . 'datasources' => 'datasources',
+			'views' . DS . 'helpers' => 'helpers',
+			'vendors' . DS . 'shells' => 'shells',
+		);
+		foreach ($map as $path => $_type) {
+			if (strpos($case, $path) === 0) {
+				$case = str_replace($path, $_type, $case);
+				break;
+			}
+		}
+		return array($type, $case, DS . $base . 'tests' . DS . 'cases' . DS . $case . '.test.php');
+	}
+
+/**
+ * testType method
+ *
+ * @param mixed $file
+ * @return void
+ * @access protected
+ */
+	function _testType($file) {
+		if (preg_match('@^cake[\\\/]libs@', $file)) {
+			return 'core';
+		} elseif (preg_match('@plugins[\\\/]([^\\/]*)@', $file, $match)) {
+			return $match[1];
+		}
+		return 'app';
 	}
 
 /**

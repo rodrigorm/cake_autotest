@@ -29,6 +29,7 @@ App::import('Core', 'Shell');
 if (!defined('DISABLE_AUTO_DISPATCH')) {
 	define('DISABLE_AUTO_DISPATCH', true);
 }
+define('TEST_APP', dirname(dirname(dirname(__FILE__))) . DS . 'test_app');
 
 if (!class_exists('ShellDispatcher')) {
 	ob_start();
@@ -114,6 +115,22 @@ class TestRepoShell extends RepoShell {
 		$this->_reset();
 		$this->returnValue = 0;
 		$this->errors = array();
+	}
+
+/**
+ * mapToTest method
+ *
+ * Sidestep the auto test detection
+ *
+ * @param mixed $file
+ * @return void
+ * @access protected
+ */
+	function _mapToTest($file) {
+		if (strpos($file, TEST_APP) !== false) {
+			$file = str_replace(TEST_APP, '/var/www/someapp', $file);
+		}
+		return parent::_mapToTest($file);
 	}
 
 /**
@@ -280,6 +297,132 @@ class RepoShellTest extends CakeTestCase {
  * @access public
  */
 	function testPassesTests() {
+	}
+
+/**
+ * testMapControllerToTests method
+ *
+ * @return void
+ * @access public
+ */
+	function testMapControllerToTests() {
+		$expected = array(
+			'app',
+			'controllers' . DS . 'posts_controller',
+			'/var/www/someapp/tests/cases/controllers/posts_controller.test.php'
+		);
+
+		$file = TEST_APP . DS . 'controllers' . DS . 'posts_controller.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+
+		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+	}
+
+/**
+ * testMapComponentToTest method
+ *
+ * @return void
+ * @access public
+ */
+	function testMapComponentToTest() {
+		$expected = array(
+			'app',
+			'components' . DS . 'one',
+			'/var/www/someapp/tests/cases/components/one.test.php'
+		);
+
+		$file = TEST_APP . DS . 'controllers' . DS . 'components' . DS . 'one.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+
+		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'components' . DS . 'one.test.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+	}
+
+/**
+ * testMapModelToTests method
+ *
+ * @return void
+ * @access public
+ */
+	function testMapModelToTests() {
+		$expected = array(
+			'app',
+			'models' . DS . 'post',
+			'/var/www/someapp/tests/cases/models/post.test.php'
+		);
+
+		$file = TEST_APP . DS . 'models' . DS . 'post.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+
+		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'models' . DS . 'post.test.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+	}
+
+/**
+ * testMapBehaviorToTest method
+ *
+ * @return void
+ * @access public
+ */
+	function testMapBehaviorToTest() {
+		$expected = array(
+			'app',
+			'behaviors' . DS . 'one',
+			'/var/www/someapp/tests/cases/behaviors/one.test.php'
+		);
+
+		$file = TEST_APP . DS . 'models' . DS . 'behaviors' . DS . 'one.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+
+		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'behaviors' . DS . 'one.test.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+	}
+
+	function testMapHelperToTest() {
+		$expected = array(
+			'app',
+			'helpers' . DS . 'one',
+			'/var/www/someapp/tests/cases/helpers/one.test.php'
+		);
+
+		$file = TEST_APP . DS . 'views' . DS . 'helpers' . DS . 'one.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+
+		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'helpers' . DS . 'one.test.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+	}
+
+/**
+ * testMapPluginControllerToTests method
+ *
+ * @return void
+ * @access public
+ */
+	function testMapPluginControllerToTests() {
+		$expected = array(
+			'test_plugin',
+			'controllers' . DS . 'test_plugin_controller',
+			'/var/www/someapp/plugins/test_plugin/tests/cases/controllers/test_plugin_controller.test.php'
+		);
+
+		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'controllers' . DS . 'test_plugin_controller.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
+
+		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
+		$result = $this->Repo->_mapToTest($file);
+		$this->assertEqual($result, $expected);
 	}
 
 /**

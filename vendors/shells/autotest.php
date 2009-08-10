@@ -23,7 +23,7 @@
 /**
  * Ensure the Notify vendor loads irrespective of how it's been included
  */
-App::import('Vendor', array('Notify', 'Autotest.Notify'));
+App::import('Vendor', 'Autotest.Notify');
 
 /**
  * Hooks class
@@ -110,7 +110,7 @@ class AutoTestShell extends Shell {
 		'debug' => false,
 		'ignorePatterns' => array(
 			'/index\.php/',
-			'/(config|locale|tmp|tests|webroot)\//'
+			'/(config|locale|tmp|webroot)\//'
 		),
 		'notify' => null,
 		'checkAllOnStart' => true
@@ -384,6 +384,24 @@ class AutoTestShell extends Shell {
 				$this->Folder = new Folder($dir);
 			}
 			$files = $this->Folder->findRecursive('.*\.php$');
+			if ($this->last_mtime) {
+				$lastMTime = 0;
+				foreach ($files as $key => $file) {
+					$time = filemtime($file);
+					if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
+						unset ($files[$key]);
+						continue;
+					}
+					if ($time > $lastMTime) {
+						$lastMTime = $time;
+					}
+				}
+				if ($lastMTime > $this->last_mtime) {
+					$this->last_mtime = $time;
+				}
+			} elseif (!$this->settings['checkAllOnStart']) {
+				$files = array();
+			}
 		} else {
 			$suffix = '';
 			$sinceLast = time() - $this->last_mtime;
@@ -395,23 +413,7 @@ class AutoTestShell extends Shell {
 			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
-		}
-		if (!$this->last_mtime && !$this->settings['checkAllOnStart']) {
-			$files = array();
-		}
-		$lastMTime = 0;
-		foreach ($files as $key => $file) {
-			$time = filemtime($file);
-			if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
-				unset ($files[$key]);
-				continue;
-			}
-			if ($time > $lastMTime) {
-				$lastMTime = $time;
-			}
-		}
-		if ($lastMTime > $this->last_mtime) {
-			$this->last_mtime = $time;
+			$this->last_mtime = time();
 		}
 		if (!empty($this->settings['ignorePatterns'])) {
 			foreach ($files as $key => $file) {

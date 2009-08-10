@@ -18,7 +18,7 @@ Mock::generatePartial(
 	array('_runTest')
 );
 
-define('TEST_APP', dirname(__FILE__) . DS . 'test_app');
+define('TEST_APP', dirname(dirname(dirname(__FILE__))) . DS . 'test_app');
 define('PASS_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1/1 test cases complete: 9 passes.\n");
 
 define('FAIL_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /Volumes/Sites/Cinemenu/site/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1) Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n\tin testHandleResults\n\tin AutoTestTestCase\n\tin /Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php\nFAIL->/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php->AutoTestTestCase->testHandleResults->Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n1/1 test cases complete: 10 passes, 1 fails.\n");
@@ -42,7 +42,7 @@ class AutoTestTestCase extends CakeTestCase {
 	}
 
 	function testFindFiles() {
-		$this->AutoTest->ignore_files = array(
+		$this->AutoTest->settings['ignorePatterns'] = array(
 			'/one(\\.test)?\\.php$/'
 		);
 		$expected = array(
@@ -54,10 +54,11 @@ class AutoTestTestCase extends CakeTestCase {
 		);
 		$result = $this->AutoTest->_findFiles();
 		$this->assertEqual($result, $expected);
+		$this->AutoTest->last_mtime = null;
 	}
 
 	function testFindFilesIgnore() {
-		$this->AutoTest->ignore_files = array(
+		$this->AutoTest->settings['ignorePatterns'] = array(
 			'/models.post\.php$/',
 			'/test_plugin/',
 			'/one(\\.test)?\\.php$/'
@@ -68,6 +69,7 @@ class AutoTestTestCase extends CakeTestCase {
 		);
 		$result = $this->AutoTest->_findFiles();
 		$this->assertEqual($result, $expected);
+		$this->AutoTest->last_mtime = null;
 	}
 
 	function testFindFilesToTest() {
@@ -79,72 +81,8 @@ class AutoTestTestCase extends CakeTestCase {
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 		);
-		$this->assertEqual($this->AutoTest->_findFilesToTest(), $time);
-		$this->assertEqual($this->AutoTest->files_to_test, $expected);
-	}
-
-	function testMapFilesToTests() {
-		$files = array(
-			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
-		);
-		$expected = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$this->assertEqual($this->AutoTest->_mapFilesToTests($files), $expected);
-
-		$files = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$expected = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$this->assertEqual($this->AutoTest->_mapFilesToTests($files), $expected);
-
-		$files = array(
-			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$expected = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$this->assertEqual($this->AutoTest->_mapFilesToTests($files), $expected);
-	}
-
-	function testMapFileToTest() {
-		$file = TEST_APP . DS . 'controllers' . DS . 'posts_controller.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-
-		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapBehaviorToTest() {
-		$file = TEST_APP . DS . 'models' . DS . 'behaviors' . DS . 'one.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'behaviors' . DS . 'one.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapComponentToTest() {
-		$file = TEST_APP . DS . 'controllers' . DS . 'components' . DS . 'one.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'components' . DS . 'one.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapHelperToTest() {
-		$file = TEST_APP . DS . 'views' . DS . 'helpers' . DS . 'one.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'helpers' . DS . 'one.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapFileToTestWithPluginTests() {
-		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'controllers' . DS . 'test_plugin_controller.php';
-		$expected = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-
-		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $file);
+		$result = $this->AutoTest->_findFiles();
+		$this->assertEqual($result, $expected);
 	}
 
 	function testRunTests() {
@@ -204,4 +142,3 @@ class AutoTestTestCase extends CakeTestCase {
 		touch($testfile, $filetime);
 	}
 }
-?>
