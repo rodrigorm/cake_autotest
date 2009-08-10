@@ -1,4 +1,24 @@
 <?php
+/**
+ * Short description for autotest.test.php
+ *
+ * Long description for autotest.test.php
+ *
+ * PHP version 4 and 5
+ *
+ * Copyright (c) 2009, Andy Dawson
+ *
+ * Licensed under The MIT License
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @filesource
+ * @copyright     Copyright (c) 2009, Andy Dawson
+ * @link          www.ad7six.com
+ * @package       autotest
+ * @subpackage    autotest.tests.cases.shells
+ * @since         v 1.0 (10-Aug-2009)
+ * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
+ */
 if (!class_exists('ShellDispatcher')) {
 	ob_start();
 	$argv = false;
@@ -15,34 +35,74 @@ App::import('Vendor', 'autotest.shells/autotest');
 Mock::generatePartial(
 	'AutoTestShell',
 	'AutoTestShellTestVersion',
-	array('_runTest')
+	array('void')
 );
 
-define('TEST_APP', dirname(__FILE__) . DS . 'test_app');
+define('TEST_APP', dirname(dirname(dirname(__FILE__))) . DS . 'test_app');
 define('PASS_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1/1 test cases complete: 9 passes.\n");
 
 define('FAIL_OUTPUT', "Hello rodrigomoyle,\n\nWelcome to CakePHP v1.1.18.5850 Console\n---------------------------------------------------------------\nApp : app\nPath: /Volumes/Sites/Cinemenu/site/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case vendors/shells/autotest\nIndividual test case: vendors/shells/autotest.test.php\n1) Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n\tin testHandleResults\n\tin AutoTestTestCase\n\tin /Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php\nFAIL->/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php->AutoTestTestCase->testHandleResults->Equal expectation fails at character 0 with [Fail] and [Pass] at [/Volumes/Sites/Cinemenu/site/app/tests/cases/vendors/shells/autotest.test.php line 124]\n1/1 test cases complete: 10 passes, 1 fails.\n");
 
 define('ERROR_OUTPUT', "Welcome to CakePHP v1.2.0.7692 RC3 Console\n---------------------------------------------------------------\nApp : app\nPath: /path/to/app\n---------------------------------------------------------------\nCakePHP Test Shell\n---------------------------------------------------------------\nRunning app case models/datasources/twitter_source\nPHP Parse error:  syntax error, unexpected ')', expecting '&' or T_VARIABLE in\n/Users/rodrigomoyle/Desktop/Code/mkt/natal2008/app/tests/cases/models/datasources/twitter_source.test.php on line 5");
 
+/**
+ * AutoTestTestCase class
+ *
+ * @uses          CakeTestCase
+ * @package       autotest
+ * @subpackage    autotest.tests.cases.shells
+ */
 class AutoTestTestCase extends CakeTestCase {
+
+/**
+ * setUp method
+ *
+ * @return void
+ * @access public
+ */
 	function setUp() {
 		$this->Folder = new Folder();
 		$this->Dispatcher = new MockShellDispatcher();
 		$this->AutoTest = new AutoTestShellTestVersion();
 		$this->AutoTest->Dispatch = $this->Dispatcher;
 		$this->AutoTest->folder = new Folder(TEST_APP);
-		$this->AutoTest->params['working'] = TEST_APP;
+		$this->AutoTest->params = array(
+			'working' => TEST_APP,
+			'app' => 'test_app',
+			'root' => dirname(TEST_APP),
+			'webroot' => 'webroot',
+			'notify' => 'log',
+			'checkAllOnStart' => false,
+		);
+		$this->AutoTest->buildPaths();
 	}
 
+/**
+ * tearDown method
+ *
+ * @return void
+ * @access public
+ */
 	function tearDown() {}
 
+/**
+ * testPresenceOfClass method
+ *
+ * @return void
+ * @access public
+ */
 	function testPresenceOfClass() {
 		$this->assertTrue(class_exists('AutoTestShell'));
 	}
 
+/**
+ * testFindFiles method
+ *
+ * @return void
+ * @access public
+ */
 	function testFindFiles() {
-		$this->AutoTest->ignore_files = array(
+		$this->AutoTest->settings['ignorePatterns'] = array(
 			'/one(\\.test)?\\.php$/'
 		);
 		$expected = array(
@@ -54,10 +114,17 @@ class AutoTestTestCase extends CakeTestCase {
 		);
 		$result = $this->AutoTest->_findFiles();
 		$this->assertEqual($result, $expected);
+		$this->AutoTest->last_mtime = null;
 	}
 
+/**
+ * testFindFilesIgnore method
+ *
+ * @return void
+ * @access public
+ */
 	function testFindFilesIgnore() {
-		$this->AutoTest->ignore_files = array(
+		$this->AutoTest->settings['ignorePatterns'] = array(
 			'/models.post\.php$/',
 			'/test_plugin/',
 			'/one(\\.test)?\\.php$/'
@@ -68,8 +135,15 @@ class AutoTestTestCase extends CakeTestCase {
 		);
 		$result = $this->AutoTest->_findFiles();
 		$this->assertEqual($result, $expected);
+		$this->AutoTest->last_mtime = null;
 	}
 
+/**
+ * testFindFilesToTest method
+ *
+ * @return void
+ * @access public
+ */
 	function testFindFilesToTest() {
 		$time = mktime();
 		$past = $time - 1;
@@ -79,116 +153,98 @@ class AutoTestTestCase extends CakeTestCase {
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 		);
-		$this->assertEqual($this->AutoTest->_findFilesToTest(), $time);
-		$this->assertEqual($this->AutoTest->files_to_test, $expected);
+		$result = $this->AutoTest->_findFiles();
+		$this->assertEqual($result, $expected);
 	}
 
-	function testMapFilesToTests() {
-		$files = array(
-			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
-		);
-		$expected = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$this->assertEqual($this->AutoTest->_mapFilesToTests($files), $expected);
+/**
+ * testPass method
+ *
+ * @return void
+ * @access public
+ */
+	function testPass() {
+		$this->AutoTest->params['working'] = TEST_APP . DS . 'controllers';
+		$base = TEST_APP . DS . 'controllers' . DS;
+		$testFile = $base . 'posts_controller.php';
+		$Folder = new Folder($base);
 
-		$files = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$expected = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$this->assertEqual($this->AutoTest->_mapFilesToTests($files), $expected);
-
-		$files = array(
-			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$expected = array(
-			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
-		);
-		$this->assertEqual($this->AutoTest->_mapFilesToTests($files), $expected);
-	}
-
-	function testMapFileToTest() {
-		$file = TEST_APP . DS . 'controllers' . DS . 'posts_controller.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-
-		$file = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapBehaviorToTest() {
-		$file = TEST_APP . DS . 'models' . DS . 'behaviors' . DS . 'one.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'behaviors' . DS . 'one.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapComponentToTest() {
-		$file = TEST_APP . DS . 'controllers' . DS . 'components' . DS . 'one.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'components' . DS . 'one.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapHelperToTest() {
-		$file = TEST_APP . DS . 'views' . DS . 'helpers' . DS . 'one.php';
-		$expected = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'helpers' . DS . 'one.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-	}
-
-	function testMapFileToTestWithPluginTests() {
-		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'controllers' . DS . 'test_plugin_controller.php';
-		$expected = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $expected);
-
-		$file = TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php';
-		$this->assertEqual($this->AutoTest->_mapFileToTest($file), $file);
-	}
-
-	function testRunTests() {
-		$time = mktime();
-		$past = $time - 1;
-		$this->AutoTest->last_mtime = $past;
-		touch(TEST_APP . DS . 'controllers' . DS . 'posts_controller.php', $time);
-
-		$testfile = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
-
-		$this->AutoTest->setReturnValue('_runTest', PASS_OUTPUT, array($testfile));
-
-		ob_start();
+		foreach($Folder->find() as $file) {
+			if ($file === basename($testFile)) {
+				touch($testFile);
+			} else {
+				$prev = time() - 60 * 60;
+				touch($base . $file, $prev, $prev);
+			}
+		}
+		$this->AutoTest->last_mtime = time() - 1;
 		$this->AutoTest->_runTests();
-		ob_end_clean();
 
-		$this->assertEqual($this->AutoTest->results, array($testfile => PASS_OUTPUT));
+		$expected = array(
+			'passed' => array(
+				$testFile => '✔'
+			),
+			'skipped' => array(),
+			'failed' => array(),
+			'unknown' => array(),
+			'passedCount' => 1,
+			'skippedCount' => 0,
+			'failedCount' => 0,
+			'unknownCount' => 0,
+			'totalCount' => 1,
+		);
+		$this->assertEqual($this->AutoTest->results, $expected);
 	}
 
-	function testHandleResults() {
-		$testfile = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
+/**
+ * testFail method
+ *
+ * @return void
+ * @access public
+ */
+	function testFail() {
+		$this->AutoTest->params['working'] = TEST_APP . DS . 'controllers';
+		$base = TEST_APP . DS . 'controllers' . DS;
+		$testFile = $base . 'other_controller.php';
+		$Folder = new Folder($base);
 
-		$this->AutoTest->files_to_test = array($testfile);
-		$this->AutoTest->results = array(
-			$testfile => PASS_OUTPUT
-		);
-		$this->AutoTest->_handleResults();
-		$this->assertNull($this->AutoTest->files_to_test);
+		$File = new File($testFile);
+		$File->write('<?php junk');
 
-		$this->AutoTest->files_to_test = array($testfile);
-		$this->AutoTest->results = array(
-			$testfile => FAIL_OUTPUT
-		);
-		$this->AutoTest->_handleResults();
-		$this->assertEqual($this->AutoTest->files_to_test, array($testfile));
+		foreach($Folder->find() as $file) {
+			if ($file === basename($testFile)) {
+				touch($testFile);
+			} else {
+				$prev = time() - 60 * 60;
+				touch($base . $file, $prev, $prev);
+			}
+		}
 
-		$this->AutoTest->files_to_test = array($testfile);
-		$this->AutoTest->results = array(
-			$testfile => ERROR_OUTPUT
+		$this->AutoTest->last_mtime = time() - 1;
+		$this->AutoTest->_runTests();
+
+		$expected = array(
+			'passed' => array(),
+			'skipped' => array(),
+	        'failed' => array(
+				$testFile => '✘'
+			),
+			'unknown' => array(),
+	        'skippedCount' => 0,
+	        'failedCount' => 1,
+			'unknownCount' => 0,
+			'totalCount' => 1,
 		);
-		$this->AutoTest->_handleResults();
-		$this->assertEqual($this->AutoTest->files_to_test, array($testfile));
+		$File->delete();
+		$this->assertEqual($this->AutoTest->results, $expected);
 	}
 
+/**
+ * testWaitForChanges method
+ *
+ * @return void
+ * @access public
+ */
 	function testWaitForChanges() {
 		$testfile = TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php';
 
@@ -200,8 +256,5 @@ class AutoTestTestCase extends CakeTestCase {
 		touch($testfile, $future);
 		$this->AutoTest->_waitForChanges();
 		$this->assertEqual($this->AutoTest->files_to_test, array($testfile));
-
-		touch($testfile, $filetime);
 	}
 }
-?>

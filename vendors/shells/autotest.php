@@ -23,7 +23,7 @@
 /**
  * Ensure the Notify vendor loads irrespective of how it's been included
  */
-App::import('Vendor', array('Notify', 'Autotest.Notify'));
+App::import('Vendor', 'Autotest.Notify');
 
 /**
  * Hooks class
@@ -110,7 +110,7 @@ class AutoTestShell extends Shell {
 		'debug' => false,
 		'ignorePatterns' => array(
 			'/index\.php/',
-			'/(config|locale|tmp|tests|webroot)\//'
+			'/(config|locale|tmp|webroot)\//'
 		),
 		'notify' => null,
 		'checkAllOnStart' => true
@@ -205,14 +205,15 @@ class AutoTestShell extends Shell {
 		}
 
 		$this->results = array(
-			'complete' => array(),
+			'passed' => array(),
 			'skipped' => array(),
 			'failed' => array(),
+			'unknown' => array(),
 		);
 		foreach($this->files_to_test as $file) {
 			$result = $this->_runTest($file);
 			if (strpos($result, '✔')) {
-				$this->results['complete'][$file] = '✔';//$result;
+				$this->results['passed'][$file] = '✔';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '❯')) {
 				$this->results['skipped'][$file] = '❯';//$result;
@@ -228,21 +229,21 @@ class AutoTestShell extends Shell {
 		$this->_hook(Hooks::ran_command);
 
 		$total = -count($this->results['skipped']);
-		foreach(array('complete', 'skipped', 'failed', 'unknown') as $type) {
+		foreach(array('passed', 'skipped', 'failed', 'unknown') as $type) {
 			if (empty($this->results[$type])) {
+				$this->results[$type . 'Count'] = 0;
 				continue;
 			}
 			$total += count($this->results[$type]);
-			$this->results[$type . ' files'] = $this->results[$type];
-			$this->results[$type] = count($this->results[$type]);
+			$this->results[$type . 'Count'] = count($this->results[$type]);
 		}
-		$this->results['total'] = $total;
+		$this->results['totalCount'] = $total;
 
 		if (empty($this->results['failed']) && empty($this->results['unknown'])) {
 			$this->_hook(Hooks::green, array_filter($this->results));
 		} else {
-			unset ($this->results['complete files']);
-			$this->_hook(Hooks::red, (int)$this->results['failed'], array_filter($this->results));
+			unset ($this->results['passedCount']);
+			$this->_hook(Hooks::red, (int)$this->results['failedCount'], array_filter($this->results));
 		}
 	}
 
@@ -254,7 +255,8 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _runTest($file) {
-		$out = exec($this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file, $_, $return);
+		$cmd = $this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file;
+		$out = exec($cmd, $_, $return);
 		return implode($_, "\n");
 	}
 
@@ -384,34 +386,36 @@ class AutoTestShell extends Shell {
 				$this->Folder = new Folder($dir);
 			}
 			$files = $this->Folder->findRecursive('.*\.php$');
+			if ($this->last_mtime) {
+				$lastMTime = 0;
+				foreach ($files as $key => $file) {
+					$time = filemtime($file);
+					if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
+						unset ($files[$key]);
+						continue;
+					}
+					if ($time > $lastMTime) {
+						$lastMTime = $time;
+					}
+				}
+				if ($lastMTime > $this->last_mtime) {
+					$this->last_mtime = $time;
+				}
+			} elseif (!$this->settings['checkAllOnStart']) {
+				$files = array();
+			}
 		} else {
 			$suffix = '';
 			$sinceLast = time() - $this->last_mtime;
 			if ($this->last_mtime) {
-				$suffix = ' -mmin ' . ceil($sinceLast / 60);
+				$suffix = ' -mmin ' . $sinceLast / 60;
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
 			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
-		}
-		if (!$this->last_mtime && !$this->settings['checkAllOnStart']) {
-			$files = array();
-		}
-		$lastMTime = 0;
-		foreach ($files as $key => $file) {
-			$time = filemtime($file);
-			if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
-				unset ($files[$key]);
-				continue;
-			}
-			if ($time > $lastMTime) {
-				$lastMTime = $time;
-			}
-		}
-		if ($lastMTime > $this->last_mtime) {
-			$this->last_mtime = $time;
+			$this->last_mtime = time();
 		}
 		if (!empty($this->settings['ignorePatterns'])) {
 			foreach ($files as $key => $file) {
