@@ -965,8 +965,8 @@ class RepoShell extends Shell {
 			return false;
 		}
 		if ($type === 'core') {
-			$libs = strpos($case, 'libs' . DS);
-			if ($libs) {
+			$libs = strpos($case, 'cake' . DS . 'libs' . DS);
+			if ($libs !== false) {
 				$libs = 'libs' . DS;
 			}
 			$case = preg_replace('@.*cake[\\\/](libs[\\\/])?@', '', $case);
@@ -1002,7 +1002,11 @@ class RepoShell extends Shell {
  * @access protected
  */
 	function _testType($file) {
-		if (preg_match('@^cake[\\\/]libs@', $file)) {
+		$_file = realpath($file);
+		if ($_file) {
+			$file = $_file;
+		}
+		if (strpos($file, CAKE) === 0) {
 			return 'core';
 		} elseif (preg_match('@plugins[\\\/]([^\\/]*)@', $file, $match)) {
 			return $match[1];
