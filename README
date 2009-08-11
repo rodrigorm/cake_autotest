@@ -12,26 +12,32 @@ To be able to use this package anywhere on your computer, move the files to the 
 			autotest.php
 			repo.php
 
-Notify - send status messages
-Autotest - monitor a folder for changes, and call the repo shell for any changed files
-Repo - syntax checks and test-case running by file name
-
 For cake 1.3+ the process is even simpler:
 	app
 	someotherapp
 	cake
 	plugins <- new folder in 1.3
+		autotest
+			vendors
+				notify.php
+				shells
+					autotest.php
+					repo.php
 	vendors
 
 cd plugins
 git clone git://github.com/rodrigorm/cake_autotest.git autotest
+
+Notify - send status messages
+Autotest - monitor a folder for changes, and call the repo shell for any changed files
+Repo - syntax checks and test-case running by file name
 
 Using as a git hook
 ==================
 To use as a pre-commit hook, create/edit .git/hooks/pre-commit with the following contents:
 >>>
 #!/bin/sh
-cake repo checkFiles pre-commit -q
+cake repo checkFiles pre-commit -q -noclear
 <<<
 
 Ensure that the shebang matches the path to your desired shell. To find your shell type "which sh/bash/csh"
