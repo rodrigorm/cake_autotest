@@ -109,6 +109,20 @@ class AutoTestShell extends Shell {
 		'mode' => null
 	);
 
+	function initialize() {
+		if (file_exists('config' . DS . 'autotest.php')) {
+			include('config' . DS . 'autotest.php');
+			if (!empty($config)) {
+				$this->settings = am($this->settings, $config);
+			}
+		} elseif (file_exists(APP . 'config' . DS . 'autotest.php')) {
+			include(APP . 'config' . DS . 'autotest.php');
+			if (!empty($config)) {
+				$this->settings = am($this->settings, $config);
+			}
+		}
+	}
+
 /**
  * main method
  *
@@ -252,7 +266,7 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _runTest($file) {
-		$cmd = $this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file . ' -q -noclear';
+		$cmd = $this->paths['console'] . ' -app '. $this->params['working'] . ' repo checkFile ' . $file . ' -q -noclear';
 		if ($this->settings['mode']) {
 			$cmd .= ' -mode ' . $this->settings['mode'];
 		}
@@ -382,6 +396,10 @@ class AutoTestShell extends Shell {
 			$dir = $this->params['working'];
 		}
 
+		if (!$this->lastMTime && !$this->settings['checkAllOnStart']) {
+			$this->lastMTime = time();
+			return array();
+		}
 		if (DS === '\\') {
 			App::import('Core', 'Folder');
 			if (empty($this->Folder)) {
@@ -419,6 +437,8 @@ class AutoTestShell extends Shell {
 			exec($cmd, $files);
 			$this->lastMTime = time();
 		}
+		$files = array_unique($files);
+		sort($files);
 		if (!empty($this->settings['ignorePatterns'])) {
 			foreach ($files as $key => $file) {
 				foreach ($this->settings['ignorePatterns'] as $ignore) {
@@ -428,8 +448,6 @@ class AutoTestShell extends Shell {
 				}
 			}
 		}
-		$files = array_unique($files);
-		sort($files);
 		return array_values($files);
 	}
 }

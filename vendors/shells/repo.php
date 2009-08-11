@@ -21,7 +21,7 @@
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @see           /branches/misc/hooks/pre-commit
+ * @see           vendors/pre-commit
  * @filesource
  * @copyright     Copyright (c) 2009, Andy Dawson
  * @link          www.ad7six.com
@@ -414,43 +414,7 @@ class RepoShell extends Shell {
 		$this->out(null);
 		$this->_printMessages();
 		$this->hr();
-		$errors = count($this->errors);
-		if ($errors) {
-			if ($errors == 1) {
-				$this->out(sprintf('%s Files checked, Errors:', $count));
-			} else {
-				$this->out(sprintf('%s Files checked, %s with errors:', $count, $errors));
-			}
-			foreach($this->errors as $file => $messages) {
-				$this->out('	' . $file);
-				if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['err']) {
-					foreach($messages as $rule => $fails) {
-						foreach($fails as $error) {
-							$this->out('		' . $error);
-						}
-					}
-				}
-			}
-			if (!empty($this->args) && $this->args[0] == 'pre-commit') {
-				$this->out('Commit aborted');
-				if ($this->settings['repoType'] === 'git') {
-					$this->out('	you can override this check with the --no-verify flag');
-				} elseif ($this->settings['repoType'] === 'svn') {
-					if (empty($this->settings['disableNoverify'])) {
-						$this->out('	you can override this check by including in your commit ' .
-							'message @noverify (at the end of any line)');
-					}
-				}
-			}
-			/*
-			if (!empty($this->settings['vimTips'])) { // @TODO
-				file_put_contents('errors.err', implode("\n", array_filter($errors)));
-				echo "type 'vim -q errors.err' to review failures\n";
-			}
-			*/
-		} else {
-			$this->out(sprintf('%s Files checked, No errors found', $count));
-		}
+		$this->_printErrors($count);
 		extract ($this->_testResults['_summary']);
 		$this->out(sprintf('%s/%s Test cases complete: %s passes, %s fails, %s exceptions, %s missing test cases.',
 			$casePass, $caseTotal, $passes, $fails, $exceptions, $missing));
@@ -497,6 +461,7 @@ class RepoShell extends Shell {
 		} else {
 			$this->out('✘');
 		}
+		$this->_printErrors(1);
 	}
 
 /**
@@ -1092,5 +1057,51 @@ class RepoShell extends Shell {
  */
 	function _buildPaths() {
 		$this->paths = array('console' => array_pop(Configure::corePaths('cake')) . 'console' . DS . 'cake');
+	}
+
+/**
+ * _printErrors method
+ *
+ * @return void
+ * @access protected
+ */
+	function _printErrors($count) {
+		$errors = count($this->errors);
+		if ($errors) {
+			if ($errors == 1) {
+				$this->out(sprintf('%s Files checked, Errors:', $count));
+			} else {
+				$this->out(sprintf('%s Files checked, %s with errors:', $count, $errors));
+			}
+			foreach($this->errors as $file => $messages) {
+				$this->out('    ' . $file);
+				if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['err']) {
+					foreach($messages as $rule => $fails) {
+						foreach($fails as $error) {
+							$this->out('            ' . $error);
+						}
+					}
+				}
+			}
+			if (!empty($this->args) && $this->args[0] == 'pre-commit') {
+				$this->out('Commit aborted');
+				if ($this->settings['repoType'] === 'git') {
+					$this->out('    you can override this check with the --no-verify flag');
+				} elseif ($this->settings['repoType'] === 'svn') {
+					if (empty($this->settings['disableNoverify'])) {
+						$this->out('    you can override this check by including in your commit ' .
+								'message @noverify (at the end of any line)');
+					}
+				}
+			}
+			/*
+			   if (!empty($this->settings['vimTips'])) { // @TODO
+			   file_put_contents('errors.err', implode("\n", array_filter($errors)));
+			   echo "type 'vim -q errors.err' to review failures\n";
+			   }
+			 */
+		} else {
+			$this->out(sprintf('%s Files checked, No errors found', $count));
+		}
 	}
 }
