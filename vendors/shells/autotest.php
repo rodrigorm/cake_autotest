@@ -223,18 +223,18 @@ class AutoTestShell extends Shell {
 		);
 		foreach($this->filesToTest as $i => $file) {
 			$result = $this->_runTest($file);
-			$file = str_replace($this->params['working'] . DS, '', $file);
+			$shortFile = str_replace($this->params['working'] . DS, '', $file);
 			if (strpos($result, '✔')) {
-				$this->results['passed'][$file] = '✔';//$result;
+				$this->results['passed'][$shortFile] = '✔';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '❯')) {
-				$this->results['skipped'][$file] = '❯';//$result;
+				$this->results['skipped'][$shortFile] = '❯';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '✘')) {
-				$this->results['failed'][$file] = '✘';//$result;
+				$this->results['failed'][$shortFile] = '✘';//$result;
 				$this->fails[$file] = $file;
 			} else {
-				$this->results['unknown'][$file] = '?';//$result;
+				$this->results['unknown'][$shortFile] = '?';//$result;
 			}
 			$this->out($result);
 		}

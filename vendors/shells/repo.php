@@ -436,7 +436,7 @@ class RepoShell extends Shell {
 				$file = $this->args[0];
 				$this->out(str_replace($this->params['working'] . DS, '', $file) . ' ', false);
 			} else {
-				$this->out("No arguments, or file doesn't exist");
+				$this->out("No arguments, or file doesn't exist (" . $this->args[0] . ")");
 				return;
 			}
 		}
