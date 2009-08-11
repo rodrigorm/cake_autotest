@@ -1000,9 +1000,9 @@ class RepoShell extends Shell {
 		$errors = count($this->errors);
 		if ($errors) {
 			if ($errors == 1) {
-				$this->out(sprintf('%s Files checked, Errors:', $count));
+				$this->out(sprintf('%s Files checked, Errors:', $filesChecked));
 			} else {
-				$this->out(sprintf('%s Files checked, %s with errors:', $count, $errors));
+				$this->out(sprintf('%s Files checked, %s with errors:', $filesChecked, $errors));
 			}
 			foreach($this->errors as $file => $messages) {
 				$this->out('	' . $file);
@@ -1032,7 +1032,7 @@ class RepoShell extends Shell {
 			}
 			*/
 		} else {
-			$this->out(sprintf('%s Files checked, No errors found', $count));
+			$this->out(sprintf('%s Files checked, No errors found', $filesChecked));
 		}
 	}
 }
