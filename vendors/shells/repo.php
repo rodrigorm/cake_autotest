@@ -130,7 +130,7 @@ class RepoShell extends Shell {
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
 		'fileNamePattern' => '/\.php$|\.ctp$|\.js$|\.css$/',
-		'skipTests' => '@(test_app[\\\/])@',
+		'skipTests' => '@(config[\\\/]|test_app[\\\/])@',
 		'rules' => array(
 			'skipFile' => array(
 				'isError' => false,
@@ -749,6 +749,26 @@ class RepoShell extends Shell {
 			return false;
 		}
 		return true;
+	}
+
+/**
+ * coreConfig method
+ *
+ * @return void
+ * @access protected
+ */
+	function _coreConfig() {
+		/*
+		$this->settings['fileNamePattern'] = '@\.php$@';
+		$excludes = array(
+			'bootstrap\.php',
+			'config[\\\/]',
+			'app_(controller|model|helper)\.php',
+			'skel[\\\/]',
+			'overloadable_'
+		);
+		$this->settings['skipTests'] = '@(' . implode($excludes, '|' . ' )@';
+		*/
 	}
 
 /**
