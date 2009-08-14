@@ -401,19 +401,12 @@ class AutoTestShell extends Shell {
 			}
 			$files = $this->Folder->findRecursive('.*\.php$');
 			if ($this->lastMTime) {
-				$lastMTime = 0;
 				foreach ($files as $key => $file) {
 					$time = filemtime($file);
 					if (!empty($this->lastMTime) && $time <= $this->lastMTime) {
 						unset ($files[$key]);
 						continue;
 					}
-					if ($time > $lastMTime) {
-						$lastMTime = $time;
-					}
-				}
-				if ($lastMTime > $this->lastMTime) {
-					$this->lastMTime = $time;
 				}
 			} elseif (!$this->settings['checkAllOnStart']) {
 				$files = array();
@@ -428,7 +421,6 @@ class AutoTestShell extends Shell {
 			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
-			$this->lastMTime = time();
 		}
 		$files = array_unique($files);
 		sort($files);
@@ -436,6 +428,10 @@ class AutoTestShell extends Shell {
 			if (!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file)) {
 				unset($files[$key]);
 			}
+		}
+		if (!empty($files)) {
+			$fileMTimes = array_map('filemtime', $files);
+			$this->lastMTime = max($fileMTimes);
 		}
 		return array_values($files);
 	}
