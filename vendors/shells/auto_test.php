@@ -2,8 +2,6 @@
 /**
  * A shell for monitoring a folder and automatically checking if changes pass test cases/sanity/syntax checks
  *
- * Long description for autotest.php
- *
  * PHP version 5
  *
  * Copyright (c) 2009, Rodrigo Moyle
@@ -100,23 +98,20 @@ class AutoTestShell extends Shell {
 	public $settings = array(
 		'interval' => 0.05, // 0.05 minutes = every 3s
 		'debug' => false,
-		'ignorePatterns' => array(
-			'/index\.php/',
-			'/(config|locale|tmp|webroot)\//'
-		),
+		'excludePattern' => '@(index\.php|[\\\/](config|locale|tmp|webroot)[\\\/])@',
 		'notify' => null,
 		'checkAllOnStart' => true,
 		'mode' => null
 	);
 
 	function initialize() {
-		if (file_exists('config' . DS . 'autotest.php')) {
-			include('config' . DS . 'autotest.php');
+		if (file_exists('config' . DS . 'auto_test.php')) {
+			include('config' . DS . 'auto_test.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
-		} elseif (file_exists(APP . 'config' . DS . 'autotest.php')) {
-			include(APP . 'config' . DS . 'autotest.php');
+		} elseif (file_exists(APP . 'config' . DS . 'auto_test.php')) {
+			include(APP . 'config' . DS . 'auto_test.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
@@ -378,7 +373,6 @@ class AutoTestShell extends Shell {
 		if (empty(AutoTestShell::$hooks[$hook])) {
 			return false;
 		}
-
 		foreach (AutoTestShell::$hooks[$hook] as $callback) {
 			call_user_func_array($callback, $params);
 		}
@@ -428,38 +422,21 @@ class AutoTestShell extends Shell {
 			$suffix = '';
 			$sinceLast = time() - $this->lastMTime;
 			if ($this->lastMTime) {
-				// $suffix = ' -mmin ' . $sinceLast / 60;
+				$suffix = ' -mmin ' . $sinceLast / 60;
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
 			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
+			$this->lastMTime = time();
 		}
 		$files = array_unique($files);
 		sort($files);
-		if (!empty($this->settings['ignorePatterns'])) {
-			foreach ($files as $key => $file) {
-				foreach ($this->settings['ignorePatterns'] as $ignore) {
-					if (preg_match($ignore, $file)) {
-						unset($files[$key]);
-					}
-				}
+		foreach($files as $key => $file) {
+			if (!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file)) {
+				unset($files[$key]);
 			}
-		}
-		$lastMTime = 0;
-		foreach ($files as $key => $file) {
-			$time = filemtime($file);
-			if (!empty($this->lastMTime) && $time <= $this->lastMTime) {
-				unset ($files[$key]);
-				continue;
-			}
-			if ($time > $lastMTime) {
-				$lastMTime = $time;
-			}
-		}
-		if ($lastMTime > $this->lastMTime) {
-			$this->lastMTime = $lastMTime;
 		}
 		return array_values($files);
 	}

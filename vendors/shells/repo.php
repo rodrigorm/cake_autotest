@@ -21,7 +21,7 @@
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @see           /branches/misc/hooks/pre-commit
+ * @see           vendors/pre-commit
  * @filesource
  * @copyright     Copyright (c) 2009, Andy Dawson
  * @link          www.ad7six.com
@@ -114,7 +114,6 @@ class RepoShell extends Shell {
  * that have been generated will be output
  * logLevel - limit what sort of messages are shown. careful with 'debug' - very verbose
  * vimTips - @TODO or delete
- * fileNamePattern - only files matching this pattern will be processed
  * rules - array of name => params
  * 	rule => the name of a method, or a regex to check
  * 	last => if this rule fails - bail on the rest
@@ -129,7 +128,6 @@ class RepoShell extends Shell {
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
-		'fileNamePattern' => '/\.php$|\.ctp$|\.js$|\.css$/',
 		'skipTests' => '@(test_app[\\\/])@',
 		'rules' => array(
 			'skipFile' => array(
@@ -401,7 +399,7 @@ class RepoShell extends Shell {
 		$this->settings['_supressMessages'] = true;
 		foreach ($files as $i => $file) {
 			$this->out($file . ' ', false);
-			if (!file_exists($file) || !preg_match($this->settings['fileNamePattern'], $file)) {
+			if (!file_exists($file) || !preg_match($this->settings['includePattern'], $file)) {
 				$this->out('❯');
 				continue;
 			}
@@ -439,9 +437,6 @@ class RepoShell extends Shell {
 				$this->out("No arguments, or file doesn't exist (" . $this->args[0] . ")");
 				return;
 			}
-		}
-		if (preg_match('@^' . ROOT . DS . '@', $file)) {
-			$file = str_replace(ROOT . DS, '', $file);
 		}
 		$string = file_get_contents($file);
 		$this->_reset(array(
@@ -723,6 +718,26 @@ class RepoShell extends Shell {
 	}
 
 /**
+ * coreConfig method
+ *
+ * @return void
+ * @access protected
+ */
+	function _coreConfig() {
+		/*
+		$this->settings['fileNamePattern'] = '@\.php$@';
+		$excludes = array(
+			'bootstrap\.php',
+			'config[\\\/]',
+			'app_(controller|model|helper)\.php',
+			'skel[\\\/]',
+			'overloadable_'
+		);
+		$this->settings['skipTests'] = '@(' . implode($excludes, '|' . ' )@';
+		*/
+	}
+
+/**
  * find method
  *
  * @param string $pattern ''
@@ -784,20 +799,30 @@ class RepoShell extends Shell {
 		}
 		if (DS === '\\') {
 			$Folder = new Folder($this->params['working']);
-			return $Folder->findRecursive('(.*\.php|.*\.ctp)');
+			$files = $Folder->findRecursive();
+		} else {
+			$cmd = 'find ' . $this->params['working'] . ' -regextype posix-extended';
+			/*
+			if (!empty($this->settings['includePattern'])) {
+				$pattern = '.*' . trim($this->settings['includePattern'], $this->settings['includePattern'][0]);
+				if ($pattern[strlen($pattern)-1] !== '$') {
+					$pattern .= '.*';
+				}
+				$pattern = str_replace(array('|'), array('\|'), $pattern);
+				$cmd .= ' -regex ' . $pattern;
+			}
+			*/
+			$cmd .= ' -type f';
+			$this->_log($cmd, null, 'debug');
+			exec($cmd, $files);
 		}
-		if (empty($suffix)) {
-			$suffix[] = '-name "*.php"';
-			$suffix[] = '-name "*.ctp"';
+		foreach ($files as $i => $file) {
+			if (!preg_match($this->settings['includePattern'], $file) ||
+				($this->settings['excludePattern'] && preg_match($this->settings['excludePattern'], $file))) {
+				unset ($files[$i]);
+			}
 		}
-		$suffix = '\( ' . implode (' -o ', $suffix) . ' \)';
-		$cmd = 'find ' . $this->params['working'] . ' ! -ipath "*.svn*" \
-		! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
-		! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
-		! -iname "*jquery*" ! -ipath "*Text*" ' . $suffix . ' -type f';
-		$this->_log($cmd, null, 'debug');
-		exec($cmd, $out);
-		return $out;
+		return $files;
 	}
 
 /**
@@ -936,8 +961,8 @@ class RepoShell extends Shell {
 			return false;
 		}
 		if ($type === 'core') {
-			$libs = strpos($case, 'libs' . DS);
-			if ($libs) {
+			$libs = strpos($case, 'cake' . DS . 'libs' . DS);
+			if ($libs !== false) {
 				$libs = 'libs' . DS;
 			}
 			$case = preg_replace('@.*cake[\\\/](libs[\\\/])?@', '', $case);
@@ -973,7 +998,11 @@ class RepoShell extends Shell {
  * @access protected
  */
 	function _testType($file) {
-		if (preg_match('@^cake[\\\/]libs@', $file)) {
+		$_file = realpath($file);
+		if ($_file) {
+			$file = $_file;
+		}
+		if (strpos($file, CAKE) === 0) {
 			return 'core';
 		} elseif (preg_match('@plugins[\\\/]([^\\/]*)@', $file, $match)) {
 			return $match[1];
@@ -1071,20 +1100,20 @@ class RepoShell extends Shell {
  * @return void
  * @access protected
  */
-	function _printErrors($filesChecked) {
+	function _printErrors($count) {
 		$errors = count($this->errors);
 		if ($errors) {
 			if ($errors == 1) {
-				$this->out(sprintf('%s Files checked, Errors:', $filesChecked));
+				$this->out(sprintf('%s Files checked, Errors:', $count));
 			} else {
-				$this->out(sprintf('%s Files checked, %s with errors:', $filesChecked, $errors));
+				$this->out(sprintf('%s Files checked, %s with errors:', $count, $errors));
 			}
 			foreach($this->errors as $file => $messages) {
-				$this->out('	' . $file);
+				$this->out('    ' . $file);
 				if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['err']) {
 					foreach($messages as $rule => $fails) {
 						foreach($fails as $error) {
-							$this->out('		' . $error);
+							$this->out('            ' . $error);
 						}
 					}
 				}
@@ -1092,22 +1121,22 @@ class RepoShell extends Shell {
 			if (!empty($this->args) && $this->args[0] == 'pre-commit') {
 				$this->out('Commit aborted');
 				if ($this->settings['repoType'] === 'git') {
-					$this->out('	you can override this check with the --no-verify flag');
+					$this->out('    you can override this check with the --no-verify flag');
 				} elseif ($this->settings['repoType'] === 'svn') {
 					if (empty($this->settings['disableNoverify'])) {
-						$this->out('	you can override this check by including in your commit ' .
-							'message @noverify (at the end of any line)');
+						$this->out('    you can override this check by including in your commit ' .
+								'message @noverify (at the end of any line)');
 					}
 				}
 			}
 			/*
-			if (!empty($this->settings['vimTips'])) { // @TODO
-				file_put_contents('errors.err', implode("\n", array_filter($errors)));
-				echo "type 'vim -q errors.err' to review failures\n";
-			}
-			*/
+			   if (!empty($this->settings['vimTips'])) { // @TODO
+			   file_put_contents('errors.err', implode("\n", array_filter($errors)));
+			   echo "type 'vim -q errors.err' to review failures\n";
+			   }
+			 */
 		} else {
-			$this->out(sprintf('%s Files checked, No errors found', $filesChecked));
+			$this->out(sprintf('%s Files checked, No errors found', $count));
 		}
 	}
 }
