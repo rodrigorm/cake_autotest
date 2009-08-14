@@ -420,9 +420,8 @@ class AutoTestShell extends Shell {
 			}
 		} else {
 			$suffix = '';
-			$sinceLast = time() - $this->lastMTime;
 			if ($this->lastMTime) {
-				$suffix = ' -mmin ' . $sinceLast / 60;
+				$suffix = $this->_findSuffix();
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
@@ -439,5 +438,21 @@ class AutoTestShell extends Shell {
 			}
 		}
 		return array_values($files);
+	}
+
+	function _findSuffix() {
+		static $system = null;
+		if (is_null($system)) {
+			$system = exec('uname -s');
+		}
+
+		if ($system == 'Darwin') {
+			$tmpfile = TMP . 'auto_test_find_newer';
+			touch($tmpfile, $this->lastMTime);
+			return ' -cnewer ' . $tmpfile;
+		} else {
+			$sinceLast = time() - $this->lastMTime;
+			return ' -mmin ' . $sinceLast / 60;
+		}
 	}
 }
