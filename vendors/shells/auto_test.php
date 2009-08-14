@@ -2,8 +2,6 @@
 /**
  * A shell for monitoring a folder and automatically checking if changes pass test cases/sanity/syntax checks
  *
- * Long description for autotest.php
- *
  * PHP version 5
  *
  * Copyright (c) 2009, Rodrigo Moyle
@@ -100,20 +98,20 @@ class AutoTestShell extends Shell {
 	public $settings = array(
 		'interval' => 0.05, // 0.05 minutes = every 3s
 		'debug' => false,
-		'excludePattern' => '@(index\.php|[\\\/](config|locale|tmp|webroot)[\\\/]@',
+		'excludePattern' => '@(index\.php|[\\\/](config|locale|tmp|webroot)[\\\/])@',
 		'notify' => null,
 		'checkAllOnStart' => true,
 		'mode' => null
 	);
 
 	function initialize() {
-		if (file_exists('config' . DS . 'autotest.php')) {
-			include('config' . DS . 'autotest.php');
+		if (file_exists('config' . DS . 'auto_test.php')) {
+			include('config' . DS . 'auto_test.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
-		} elseif (file_exists(APP . 'config' . DS . 'autotest.php')) {
-			include(APP . 'config' . DS . 'autotest.php');
+		} elseif (file_exists(APP . 'config' . DS . 'auto_test.php')) {
+			include(APP . 'config' . DS . 'auto_test.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
@@ -375,7 +373,6 @@ class AutoTestShell extends Shell {
 		if (empty(AutoTestShell::$hooks[$hook])) {
 			return false;
 		}
-
 		foreach (AutoTestShell::$hooks[$hook] as $callback) {
 			call_user_func_array($callback, $params);
 		}
@@ -436,8 +433,10 @@ class AutoTestShell extends Shell {
 		}
 		$files = array_unique($files);
 		sort($files);
-		if (!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file)) {
-			unset($files[$key]);
+		foreach($files as $key => $file) {
+			if (!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file)) {
+				unset($files[$key]);
+			}
 		}
 		return array_values($files);
 	}
