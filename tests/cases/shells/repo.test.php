@@ -34,8 +34,8 @@ if (!class_exists('ShellDispatcher')) {
 }
 
 if (!class_exists('RepoShell')) {
+	App::import('Shell', 'Autotest.Repo');
 	App::import('Shell', 'Repo');
-	include_once('vendors/shells/repo.php'); //temp
 }
 
 /**
@@ -186,10 +186,10 @@ class RepoShellTest extends CakeTestCase {
 		ksort($rules);
 
 		$this->_reporter->_test_stack[] = 'test' . Inflector::classify(implode($rules, ', '));
-		$this->assertIdentical($rules, $keys);
+		$this->assertIdentical($rules, $keys, "\n" . 'Expected Errors (' . implode($rule, ', ') . ') do not match results (' . implode($keys, ', ') . ')');
 
 		if ($isError) {
-			$this->assertTrue($this->Repo->returnValue);
+			$this->assertTrue($this->Repo->returnValue, 'Test case was expected to fail, but it passed');
 		}
 		array_pop($this->_reporter->_test_stack);
 	}
@@ -203,6 +203,7 @@ class RepoShellTest extends CakeTestCase {
 	function startTest() {
 		$this->Repo = new TestRepoShell();
 		$this->Repo->params['working'] = dirname(dirname(dirname(__FILE__))) . DS . 'repo_test_files' . DS;
+		$this->Repo->settings['excludePattern'] = false;
 		$this->Folder = new Folder(TESTS . 'repo_test_files');
 	}
 
@@ -215,6 +216,7 @@ class RepoShellTest extends CakeTestCase {
  * @access public
  */
 	function testListFiles() {
+		$this->Repo->params['excludePattern'] = false;
 		$files = $this->Repo->listFiles();
 		$this->assertTrue($files);
 		foreach($files as $file) {

@@ -29,11 +29,15 @@ Mock::generate('ShellDispatcher');
 
 App::import('Core', 'Folder');
 
-App::import('Shell', 'Autotest.Autotest');
+App::import('Shell', 'Autotest.AutoTest');
+App::import('Shell', 'AutoTest');
 Mock::generatePartial(
 	'AutoTestShell',
 	'AutoTestShellTestVersion',
-	array('void')
+	array(
+		'void',
+		'_runTest'
+	)
 );
 
 define('TEST_APP', dirname(dirname(dirname(__FILE__))) . DS . 'test_app');
@@ -53,7 +57,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @return void
  * @access public
  */
-	function setUp() {
+	function startTest() {
 		$this->Folder = new Folder();
 		$this->Dispatcher = new MockShellDispatcher();
 		$this->AutoTest = new AutoTestShellTestVersion();
@@ -76,7 +80,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @return void
  * @access public
  */
-	function tearDown() {}
+	function endTest() {}
 
 /**
  * testPresenceOfClass method
@@ -94,10 +98,129 @@ class AutoTestTestCase extends CakeTestCase {
  * @return void
  * @access public
  */
-	function testFindFiles() {
-		$this->AutoTest->settings['ignorePatterns'] = array(
-			'/one(\\.test)?\\.php$/'
+	function testAddHooks() {
+		$this->AutoTest->addHooks();
+		$expected = array(
+			Hooks::green => array(
+				array('Notify', 'green')
+			),
+			Hooks::red => array(
+				array('Notify', 'red')
+			),
+			Hooks::all_good => array(
+				array('Notify', 'allGood')
+			)
 		);
+		$this->assertEqual(AutoTestShell::$hooks, $expected);
+	}
+
+/**
+ * testRunTests method
+ *
+ * @return void
+ * @access public
+ */
+	function testRunTests() {
+		$this->AutoTest->filesToTest = array(
+			'file_1.php',
+			'file_2.php'
+		);
+		$this->AutoTest->setReturnValue('_runTest', 'Pass ✔');
+		$this->AutoTest->expectCallCount('_runTest', 2);
+		$this->AutoTest->_runTests();
+	}
+
+/**
+ * testRunTestsSetFailsOnFailTest method
+ *
+ * @return void
+ * @access public
+ */
+	function testRunTestsSetFailsOnFailTest() {
+		$this->AutoTest->filesToTest = array(
+			'file_1.php',
+			'file_2.php'
+		);
+		$this->AutoTest->setReturnValueAt(0, '_runTest', 'Pass ✔');
+		$this->AutoTest->setReturnValueAt(1, '_runTest', 'Fail ✘');
+		$this->AutoTest->_runTests();
+		$expected = array(
+			'file_2.php' => 'file_2.php'
+		);
+		$this->assertEqual($this->AutoTest->fails, $expected);
+	}
+
+/**
+ * testAllGood method
+ *
+ * @return void
+ * @access public
+ */
+	function testAllGood() {
+		$this->assertTrue($this->AutoTest->_allGood());
+	}
+
+/**
+ * testAllGoodReturnFalse method
+ *
+ * @return void
+ * @access public
+ */
+	function testAllGoodReturnFalse() {
+		$this->AutoTest->fails = array(
+			'file_1.php'
+		);
+		$this->assertFalse($this->AutoTest->_allGood());
+	}
+
+/**
+ * testReset method
+ *
+ * @return void
+ * @access public
+ */
+	function testReset() {
+		$this->AutoTest->filesToTest = array(
+			'file_1.php'
+		);
+		$this->AutoTest->lastMTime = time();
+		$this->AutoTest->fails = array(
+			'file_2.php'
+		);
+		$this->AutoTest->_reset();
+		$this->assertNull($this->AutoTest->filesToTest);
+		$this->assertNull($this->AutoTest->lastMTime);
+		$this->assertEqual($this->AutoTest->fails, array());
+	}
+
+/**
+ * testAddHook method
+ *
+ * @return void
+ * @access public
+ */
+	function testAddHook() {
+		$_hooks = AutoTestShell::$hooks;
+		AutoTestShell::$hooks = array();
+		$callback = 'sprintf';
+		$this->AutoTest->addHook(Hooks::green, $callback);
+		$expected = array(
+			Hooks::green => array(
+				$callback
+			)
+		);
+		$this->assertEqual(AutoTestShell::$hooks, $expected);
+		AutoTestShell::$hooks = $_hooks;
+	}
+
+/**
+ * testFindFiles method
+ *
+ * @return void
+ * @access public
+ */
+	function testFindFiles() {
+		$this->AutoTest->settings['excludePattern'] = '@one(\\.test)?\\.php$@';
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'models' . DS . 'post.php',
@@ -117,11 +240,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testFindFilesIgnore() {
-		$this->AutoTest->settings['ignorePatterns'] = array(
-			'/models.post\.php$/',
-			'/test_plugin/',
-			'/one(\\.test)?\\.php$/'
-		);
+		$this->AutoTest->settings['excludePattern'] = '@(models[\\\/]post\.php|[\\\/]test_plugin[\\\/]|[\\\/]one(\.test)?\.php$)@';
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
@@ -171,6 +290,7 @@ class AutoTestTestCase extends CakeTestCase {
 			}
 		}
 		$this->AutoTest->lastMTime = time() - 1;
+		$this->AutoTest->setReturnValue('_runTest', 'Pass ✔');
 		$this->AutoTest->_runTests();
 
 		$expected = array(
@@ -214,18 +334,19 @@ class AutoTestTestCase extends CakeTestCase {
 		}
 
 		$this->AutoTest->lastMTime = time() - 1;
+		$this->AutoTest->setReturnValue('_runTest', 'Fail ✘');
 		$this->AutoTest->_runTests();
 
 		$expected = array(
 			'passed' => array(),
 			'skipped' => array(),
-	        'failed' => array(
+			'failed' => array(
 				$testFile => '✘'
 			),
 			'unknown' => array(),
-	        'passedCount' => 0,
-	        'skippedCount' => 0,
-	        'failedCount' => 1,
+			'passedCount' => 0,
+			'skippedCount' => 0,
+			'failedCount' => 1,
 			'unknownCount' => 0,
 			'totalCount' => 1,
 		);
