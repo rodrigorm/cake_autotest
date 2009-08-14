@@ -114,7 +114,6 @@ class RepoShell extends Shell {
  * that have been generated will be output
  * logLevel - limit what sort of messages are shown. careful with 'debug' - very verbose
  * vimTips - @TODO or delete
- * fileNamePattern - only files matching this pattern will be processed
  * rules - array of name => params
  * 	rule => the name of a method, or a regex to check
  * 	last => if this rule fails - bail on the rest
@@ -129,7 +128,6 @@ class RepoShell extends Shell {
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
-		'fileNamePattern' => '/\.php$|\.ctp$|\.js$|\.css$/',
 		'skipTests' => '@(test_app[\\\/])@',
 		'rules' => array(
 			'skipFile' => array(
@@ -401,7 +399,7 @@ class RepoShell extends Shell {
 		$this->settings['_supressMessages'] = true;
 		foreach ($files as $i => $file) {
 			$this->out($file . ' ', false);
-			if (!file_exists($file) || !preg_match($this->settings['fileNamePattern'], $file)) {
+			if (!file_exists($file) || !preg_match($this->settings['includePattern'], $file)) {
 				$this->out('❯');
 				continue;
 			}
@@ -778,20 +776,30 @@ class RepoShell extends Shell {
 		}
 		if (DS === '\\') {
 			$Folder = new Folder($this->params['working']);
-			return $Folder->findRecursive('(.*\.php|.*\.ctp)');
+			$files = $Folder->findRecursive();
+		} else {
+			$cmd = 'find ' . $this->params['working'] . ' -regextype posix-extended';
+			/*
+			if (!empty($this->settings['includePattern'])) {
+				$pattern = '.*' . trim($this->settings['includePattern'], $this->settings['includePattern'][0]);
+				if ($pattern[strlen($pattern)-1] !== '$') {
+					$pattern .= '.*';
+				}
+				$pattern = str_replace(array('|'), array('\|'), $pattern);
+				$cmd .= ' -regex ' . $pattern;
+			}
+			*/
+			$cmd .= ' -type f';
+			$this->_log($cmd, null, 'debug');
+			exec($cmd, $files);
 		}
-		if (empty($suffix)) {
-			$suffix[] = '-name "*.php"';
-			$suffix[] = '-name "*.ctp"';
+		foreach ($files as $i => $file) {
+			if (!preg_match($this->settings['includePattern'], $file) ||
+				($this->settings['excludePattern'] && preg_match($this->settings['excludePattern'], $file))) {
+				unset ($files[$i]);
+			}
 		}
-		$suffix = '\( ' . implode (' -o ', $suffix) . ' \)';
-		$cmd = 'find ' . $this->params['working'] . ' ! -ipath "*.svn*" \
-		! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
-		! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
-		! -iname "*jquery*" ! -ipath "*Text*" ' . $suffix . ' -type f';
-		$this->_log($cmd, null, 'debug');
-		exec($cmd, $out);
-		return $out;
+		return $files;
 	}
 
 /**

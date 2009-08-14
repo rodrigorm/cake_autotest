@@ -100,10 +100,7 @@ class AutoTestShell extends Shell {
 	public $settings = array(
 		'interval' => 0.05, // 0.05 minutes = every 3s
 		'debug' => false,
-		'ignorePatterns' => array(
-			'/index\.php/',
-			'/(config|locale|tmp|webroot)\//'
-		),
+		'excludePattern' => '@(index\.php|[\\\/](config|locale|tmp|webroot)[\\\/]@',
 		'notify' => null,
 		'checkAllOnStart' => true,
 		'mode' => null
@@ -439,14 +436,8 @@ class AutoTestShell extends Shell {
 		}
 		$files = array_unique($files);
 		sort($files);
-		if (!empty($this->settings['ignorePatterns'])) {
-			foreach ($files as $key => $file) {
-				foreach ($this->settings['ignorePatterns'] as $ignore) {
-					if (preg_match($ignore, $file)) {
-						unset($files[$key]);
-					}
-				}
-			}
+		if (!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file)) {
+			unset($files[$key]);
 		}
 		return array_values($files);
 	}

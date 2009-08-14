@@ -217,9 +217,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testFindFiles() {
-		$this->AutoTest->settings['ignorePatterns'] = array(
-			'/one(\\.test)?\\.php$/'
-		);
+		$this->AutoTest->settings['excludePattern'] = '@one(\\.test)?\\.php$@';
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'models' . DS . 'post.php',
@@ -239,11 +237,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testFindFilesIgnore() {
-		$this->AutoTest->settings['ignorePatterns'] = array(
-			'/models.post\.php$/',
-			'/test_plugin/',
-			'/one(\\.test)?\\.php$/'
-		);
+		$this->AutoTest->settings['excldePattern'] = '/(models.post\.php$|[\\\/]test_plugin[\\\/]|[\\\/]one(\.test)?\.php$)/';
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
