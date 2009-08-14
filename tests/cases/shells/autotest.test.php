@@ -291,7 +291,7 @@ class AutoTestTestCase extends CakeTestCase {
 		$base = TEST_APP . DS . 'controllers' . DS;
 		$testFile = 'posts_controller.php';
 		$Folder = new Folder($base);
-	
+
 		foreach($Folder->find() as $file) {
 			if ($file === $testFile) {
 				touch($base . $testFile);
@@ -302,7 +302,7 @@ class AutoTestTestCase extends CakeTestCase {
 		}
 		$this->AutoTest->lastMTime = time() - 1;
 		$this->AutoTest->_runTests();
-	
+
 		$expected = array(
 			'passed' => array(
 				'posts_controller.php' => '✔'
@@ -330,10 +330,10 @@ class AutoTestTestCase extends CakeTestCase {
 		$base = TEST_APP . DS . 'controllers' . DS;
 		$testFile = 'other_controller.php';
 		$Folder = new Folder($base);
-	
+
 		$File = new File($base . $testFile);
 		$File->write('<?php junk');
-	
+
 		foreach($Folder->find() as $file) {
 			if ($file === $testFile) {
 				touch($base . $testFile);
@@ -342,10 +342,10 @@ class AutoTestTestCase extends CakeTestCase {
 				touch($base . $file, $prev, $prev);
 			}
 		}
-	
+
 		$this->AutoTest->lastMTime = time() - 1;
 		$this->AutoTest->_runTests();
-	
+
 		$expected = array(
 			'passed' => array(),
 			'skipped' => array(),
