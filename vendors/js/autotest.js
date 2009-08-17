@@ -1,5 +1,7 @@
 (function($) {
 
+var Statuses = ['passed', 'failed', 'skipped', 'unknown', 'untested'];
+
 var AutoTest = {
 	lastMTime: null,
 	filesToTest: {},
@@ -18,7 +20,7 @@ var AutoTest = {
 	},
 
 	_allGood: function _allGood() {
-		return Files.$files.find('li.failed').size() == 0;
+		return Files.failed() == 0;
 	},
 
 	_runTest: function _runTest(file) {
@@ -32,11 +34,11 @@ var AutoTest = {
 			}
 			delete(AutoTest.filesToTest[file]);
 		}
-		Files.update(file, {result: 'loading'});
+		Files.update(file, {status: 'loading'});
 
 		$.get('/autotest/run.json?file=' + file + '&_=' + Math.random(), function(result) {
 			var result = eval('(' + result + ')');
-			if (result.result == 'failed') {
+			if (result.status == 'failed') {
 				AutoTest.fails[file] = file;
 			} else if (AutoTest.fails[file]) {
 				delete(AutoTest.fails[file]);
@@ -90,11 +92,10 @@ var Files = {
 	init: function init() {
 		Files.$files = $('#files');
 		Files.$files.click(Files.click);
-		Files.Filters.init();
 	},
 	
 	update: function update(file, result) {
-		var result = result || {result: 'unknown', 'output': ''};
+		var result = result || {status: 'untested', 'output': ''};
 		Files.render([{
 			name: file, 
 			result: result
@@ -105,40 +106,34 @@ var Files = {
 		var elements = [];
 		for (var i=0; i < files.length; i++) {
 			var file = files[i];
-			var result = file.result || {result: 'unknown', output: ''};
+			var result = file.result || {status: 'untested', output: ''};
 
 			var id = file.name
-				.split('/')
-				.join('_')
-				.split('\\')
-				.join('_')
-				.split('.')
+				.split(/[\/\\\.]/)
 				.join('_');
 			var $element = $('#' + id);
 
 			if ($element.size() > 0) {
+				$.each(Statuses, function(i, status) {
+					$element.removeClass(status);
+				});
 				$element
-					.removeClass('passed')
-					.removeClass('skipped')
-					.removeClass('failed')
-					.removeClass('unknown')
 					.removeClass('loading')
-					.addClass(result.result)
-					.find('span.result')
-						.html(result.result)
+					.addClass(result.status)
+					.find('span.status')
+						.html(result.status)
 					.end()
 					.find('pre.output')
 						.text(result.output);
 			} else {
 				elements.push([
-					'<li id="', id, '" class="', result.result, '">',
-						'<span class="result">',
-							result.result,
+					'<li id="', id, '" class="', result.status, '">',
+						'<span class="status">',
+							result.status,
 						'</span>',
 						'<span class="name">',
 							file.name,
 						'</span>',
-						'<a href="#" class="run">(Run test)</a>',
 						'<pre class="output" style="display:none">',
 							result.output,
 						'</pre>',
@@ -147,42 +142,97 @@ var Files = {
 			}
 		}
 		Files.$files.append(elements.join(''));
-		Files.Filters.apply();
+		Filters.apply();
+		ProgressBar.render();
 	},
 
 	click: function click(e) {
 		var target = $(e.target).parents('li')[0];
-
-		if ($(e.target).is('.run')) {
-			var file = $('span.name', target).text();
-			AutoTest._runTest(file);
-			return false;
+		if (!target) {
+			return;
 		}
 
 		$('pre.output', target).toggle();
+	},
+
+	total: function total() {
+		return $('li', Files.$files).size();
 	}
 }
 
-Files.Filters = {
+$.each(Statuses, function(i, status) {
+	Files[status] = function() {
+		return $('li.' + status, Files.$files).size();
+	}
+});
+
+
+var Filters = {
 	$filters: null,
 
 	init: function init() {
-		Files.Filters.$filters = $('#filters input[type=checkbox]');
-		Files.Filters.$filters.click(Files.Filters.apply);
+		Filters.$filters = $('#filters input[type=checkbox]');
+		Filters.$filters.click(Filters.apply);
 	},
 
 	apply: function apply() {
-		var selected = $.map(Files.Filters.$filters.filter(':checked'), function(element) {
+		var selected = $.map(Filters.$filters.filter(':checked'), function(element) {
 			return 'li.' + element.value;
 		});
 		selected.push('li.loading');
-		Files.$files.find('li:visible').not(selected.join(', ')).animate({height: 'hide'});
-		Files.$files.find('li:hidden').filter(selected.join(', ')).animate({height: 'show'});
+		
+		setTimeout(function() {
+			$('li:visible', Files.$files).not(selected.join(', ')).animate({height: 'hide'});
+			$('li:hidden', Files.$files).filter(selected.join(', ')).animate({height: 'show'});
+		}, 1);
+		Filters.render();
+	},
+
+	render: function render() {
+		$.each(Statuses, function(i, status) {
+			$('#filters li.' + status + ' span.count').html(Files[status]());
+		});
+	}
+}
+
+var ProgressBar = {
+	$progressBar: null,
+	$progressBarCurrent: null,
+
+	init: function init() {
+		ProgressBar.$progressBar = $('#progress-bar');
+		ProgressBar.$progressBarCurrent = $('#progress-bar-current');
+		ProgressBar.$progressBarCurrent.css('width', 0);
+	},
+
+	render: function render() {
+		var total = Files.total();
+		var current = total - Files.untested();
+		var width = (40 * current) / total;
+
+		ProgressBar.$progressBarCurrent.css('width', width + 'em');
+
+		ProgressBar.$progressBar
+			.removeClass('passed')
+			.removeClass('failed');
+
+		if (current != total) {
+			return;
+		}
+
+		if (Files.failed() > 0) {
+			ProgressBar.$progressBar.addClass('failed');
+			return;
+		}
+
+		ProgressBar.$progressBar.addClass('passed');
 	}
 }
 
 $(document).ready(function() {
 	Files.init();
+	Filters.init();
+	ProgressBar.init();
 	AutoTest.run();
 });
 

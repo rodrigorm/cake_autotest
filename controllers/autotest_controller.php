@@ -49,16 +49,16 @@ class AutotestController extends Controller {
 
 		$output = $this->AutoTest->_runTest($file);
 		if (strpos($output, '✔')) {
-			$result = 'passed';
+			$status = 'passed';
 		} elseif (strpos($output, '❯')) {
-			$result = 'skipped';
+			$status = 'skipped';
 		} elseif (strpos($output, '✘')) {
-			$result = 'failed';
+			$status = 'failed';
 		} else {
-			$result = 'unknown';
+			$status = 'unknown';
 		}
 		$this->set(array(
-			'result' => $result,
+			'status' => $status,
 			'output' => $output
 		));
 	}

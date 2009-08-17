@@ -1,5 +1,5 @@
 <?php $result = array(
-	'result' => $result,
+	'status' => $status,
 	'output' => $output
 ) ?>
 <?php echo $javascript->object($result) ?>
