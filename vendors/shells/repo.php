@@ -575,21 +575,16 @@ class RepoShell extends Shell {
 		}
 		$files = array_unique($files);
 		$total = count($files);
-
 		foreach($files as &$file) {
 			$file = str_replace('.sample', '', $file);
-		}
-		if ($key = array_search($source, $files)) {
-			unset ($files[$key]);
-		}
-		$files = array_unique($files);
-		$unique = count($files);
-		$this->out($unique . ' pre-commit files found');
-
-		foreach($files as &$file) {
 			$file = realpath($file);
 		}
 		$files = array_filter(array_unique($files));
+		if ($key = array_search($source, $files)) {
+			unset ($files[$key]);
+		}
+		$unique = count($files);
+		$this->out($unique . ' pre-commit files found');
 		$toProcess = count($files);
 		$this->out($toProcess . ' pre-commit files to process');
 		if (DS === '\\') {
