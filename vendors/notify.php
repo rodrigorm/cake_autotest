@@ -148,7 +148,6 @@ class Notify {
 		$message = addslashes($message);
 		$title = addslashes($title);
 		$method = '_message' . Notify::$method;
-		Notify::_messageLog(null, null, Debugger::trace());
 		return Notify::$method($img, $title, $message, $priority);
 	}
 
@@ -300,7 +299,9 @@ class Notify {
 		if (!$Object) {
 			$Object = new Object();
 		}
-		$Object->log(str_replace("\n", ' ', $title . ':' . $message), 'autotest');
+		$file = 'notify' . Inflector::slug(microtime());
+		$Object->log($title . ':' . $message, $file);
+		return LOGS . $file . '.log';
 	}
 
 /**
@@ -317,6 +318,8 @@ class Notify {
  */
 	static protected function _messageNotifySend($img, $title, $message, $priority = 0) {
 		$cmd = 'notify-send';
+		$cmd .= ' -u normal';
+		$cmd .= ' -c cakeNotice';
 		if ($img) {
 			$cmd .= ' -i ' . $img;
 		}
@@ -324,6 +327,10 @@ class Notify {
 			$cmd .= " \"$title\"";
 		}
 		if ($message) {
+			if (strlen($message) > 140) {
+				$file = Notify::_messageLog($img, $title, $message, $priority);
+				$message = '<a href="file://' . $file . '">' . $message . '</a>';
+			}
 			$cmd .= " \"$message\"";
 		}
 		shell_exec($cmd);
