@@ -128,6 +128,8 @@ class RepoShell extends Shell {
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
+		'excludePattern' => null,
+		'includePattern' => null,
 		'skipTests' => '@(test_app[\\\/])@',
 		'rules' => array(
 			'skipFile' => array(
@@ -399,7 +401,7 @@ class RepoShell extends Shell {
 		$this->settings['_supressMessages'] = true;
 		foreach ($files as $i => $file) {
 			$this->out($file . ' ', false);
-			if (!file_exists($file) || !preg_match($this->settings['includePattern'], $file)) {
+			if (!file_exists($file) || (!empty($this->settings['includePattern']) && !preg_match($this->settings['includePattern'], $file))) {
 				$this->out('❯');
 				continue;
 			}
@@ -817,8 +819,8 @@ class RepoShell extends Shell {
 			exec($cmd, $files);
 		}
 		foreach ($files as $i => $file) {
-			if (!preg_match($this->settings['includePattern'], $file) ||
-				($this->settings['excludePattern'] && preg_match($this->settings['excludePattern'], $file))) {
+			if (!empty($this->settings['includePattern']) && !preg_match($this->settings['includePattern'], $file) ||
+				(!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file))) {
 				unset ($files[$i]);
 			}
 		}
@@ -1110,13 +1112,14 @@ class RepoShell extends Shell {
 			}
 			foreach($this->errors as $file => $messages) {
 				$this->out('    ' . $file);
-				if ($this->_logLevel[$this->settings['logLevel']] >= $this->_logLevel['err']) {
-					foreach($messages as $rule => $fails) {
-						foreach($fails as $error) {
-							$this->out('            ' . $error);
-						}
+				foreach($messages as $rule => $fails) {
+					foreach($fails as $error) {
+						$this->out('            ' . $error);
 					}
 				}
+			}
+			if (!empty($this->settings['vimTips'])) {
+				$this->_writeErrorFile();
 			}
 			if (!empty($this->args) && $this->args[0] == 'pre-commit') {
 				$this->out('Commit aborted');
@@ -1129,14 +1132,32 @@ class RepoShell extends Shell {
 					}
 				}
 			}
-			/*
-			   if (!empty($this->settings['vimTips'])) { // @TODO
-			   file_put_contents('errors.err', implode("\n", array_filter($errors)));
-			   echo "type 'vim -q errors.err' to review failures\n";
-			   }
-			 */
 		} else {
 			$this->out(sprintf('%s Files checked, No errors found', $count));
 		}
+	}
+	function _writeErrorFile() {
+		$errors = array();
+		foreach($this->errors as $file => $messages) {
+			if ($this->_logLevel[$this->settings['logLevel']] < $this->_logLevel['err']) {
+				continue;
+			}
+			foreach($messages as $rule => $fails) {
+				foreach($fails as $line => $error) {
+					if (preg_match('@in [^ ] on line @', $error)) {
+						$errors[$file . $line] = $error;
+					}
+					if (!is_numeric($line)) {
+						$line = '0';
+					}
+					$errors[$file . $line] = "$error in $file on line $line";
+				}
+			}
+		}
+		if (!$errors) {
+			return;
+		}
+		file_put_contents($this->params['working'] . DS . 'errors.err', implode("\n", array_filter($errors)));
+		$this->out("type 'vim -q errors.err' to review failures");
 	}
 }
