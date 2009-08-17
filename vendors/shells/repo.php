@@ -128,6 +128,8 @@ class RepoShell extends Shell {
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
+		'excludePattern' => null,
+		'includePattern' => null,
 		'skipTests' => '@(test_app[\\\/])@',
 		'rules' => array(
 			'skipFile' => array(
@@ -399,7 +401,7 @@ class RepoShell extends Shell {
 		$this->settings['_supressMessages'] = true;
 		foreach ($files as $i => $file) {
 			$this->out($file . ' ', false);
-			if (!file_exists($file) || !preg_match($this->settings['includePattern'], $file)) {
+			if (!file_exists($file) || (!empty($this->settings['includePattern']) && !preg_match($this->settings['includePattern'], $file))) {
 				$this->out('❯');
 				continue;
 			}
@@ -814,8 +816,8 @@ class RepoShell extends Shell {
 			exec($cmd, $files);
 		}
 		foreach ($files as $i => $file) {
-			if (!preg_match($this->settings['includePattern'], $file) ||
-				($this->settings['excludePattern'] && preg_match($this->settings['excludePattern'], $file))) {
+			if (!empty($this->settings['includePattern']) && !preg_match($this->settings['includePattern'], $file) ||
+				(!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file))) {
 				unset ($files[$i]);
 			}
 		}
