@@ -440,7 +440,7 @@ class RepoShell extends Shell {
 				$file = $this->args[0];
 				$this->out(str_replace($this->params['working'] . DS, '', $file) . ' ', false);
 			} else {
-				$this->out("No arguments, or file doesn't exist");
+				$this->out("No arguments, or file doesn't exist (" . $this->args[0] . ")");
 				return;
 			}
 		}
@@ -668,7 +668,10 @@ class RepoShell extends Shell {
 			$result = 'test did not complete';
 			$return = 9;
 		}
-		if (preg_match_all('@(\d+) (passes|fails|exceptions)@', $result, $matches)) {
+		if (preg_match_all('@Error: (.+)@', $result, $matches)) {
+			$return = 9;
+			$this->_testResults['_summary']['fails'] += 1;
+		} elseif (preg_match_all('@(\d+) (passes|fails|exceptions)@', $result, $matches)) {
 			if ($matches) {
 				foreach ($matches[2] as $i => $type) {
 					$this->_testResults['_summary'][$type] += $matches[1][$i];
@@ -1033,7 +1036,7 @@ class RepoShell extends Shell {
  */
 	function _exec($cmd, &$out = null) {
 		if (DS === '/') {
-			exec($cmd . ' 2> /dev/null', $out, $return);
+			exec($cmd . ' 2>&1', $out, $return);
 		} else {
 			exec($cmd, $out, $return);
 		}

@@ -218,18 +218,18 @@ class AutoTestShell extends Shell {
 		);
 		foreach($this->filesToTest as $i => $file) {
 			$result = $this->_runTest($file);
-			$file = str_replace($this->params['working'] . DS, '', $file);
+			$shortFile = str_replace($this->params['working'] . DS, '', $file);
 			if (strpos($result, '✔')) {
-				$this->results['passed'][$file] = '✔';//$result;
+				$this->results['passed'][$shortFile] = '✔';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '❯')) {
-				$this->results['skipped'][$file] = '❯';//$result;
+				$this->results['skipped'][$shortFile] = '❯';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '✘')) {
-				$this->results['failed'][$file] = '✘';//$result;
+				$this->results['failed'][$shortFile] = '✘';//$result;
 				$this->fails[$file] = $file;
 			} else {
-				$this->results['unknown'][$file] = '?';//$result;
+				$this->results['unknown'][$shortFile] = '?';//$result;
 			}
 			$this->out($result);
 		}
@@ -420,9 +420,8 @@ class AutoTestShell extends Shell {
 			}
 		} else {
 			$suffix = '';
-			$sinceLast = time() - $this->lastMTime;
 			if ($this->lastMTime) {
-				$suffix = ' -mmin ' . $sinceLast / 60;
+				$suffix = $this->_findSuffix();
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
@@ -439,5 +438,21 @@ class AutoTestShell extends Shell {
 			}
 		}
 		return array_values($files);
+	}
+
+	function _findSuffix() {
+		static $system = null;
+		if (is_null($system)) {
+			$system = exec('uname -s');
+		}
+
+		if ($system == 'Darwin') {
+			$tmpfile = TMP . 'auto_test_find_newer';
+			touch($tmpfile, $this->lastMTime);
+			return ' -cnewer ' . $tmpfile;
+		} else {
+			$sinceLast = time() - $this->lastMTime;
+			return ' -mmin ' . $sinceLast / 60;
+		}
 	}
 }

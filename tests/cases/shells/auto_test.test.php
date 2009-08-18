@@ -19,6 +19,14 @@
  * @since         v 1.0 (10-Aug-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
+if (!defined('DISABLE_AUTO_DISPATCH')) {
+	define('DISABLE_AUTO_DISPATCH', true);
+}
+
+if (!class_exists('Shell')) {
+	App::import('Core', 'Shell');
+}
+
 if (!class_exists('ShellDispatcher')) {
 	ob_start();
 	$argv = false;
