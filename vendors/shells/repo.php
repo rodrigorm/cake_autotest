@@ -213,6 +213,10 @@ class RepoShell extends Shell {
 				'rule' => '/(?!\*)[ \t]\r?\n/s',
 				'vimTip' => ':%s/\(\*\)\@<!\s\+$//g'
 			),
+			'trailingPhpTag' => array(
+				'logLevel' => 'warning',
+				'rule' => '/\?>[\r?\n]*$/s',
+			),
 			'windowsNewLine' => array(
 				'logLevel' => 'warning',
 				'rule' => '/\r/s',

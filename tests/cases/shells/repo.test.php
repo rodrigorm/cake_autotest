@@ -14,8 +14,8 @@
  * @filesource
  * @copyright     Copyright (c) 2009, Andy Dawson
  * @link          www.ad7six.com
- * @package       base
- * @subpackage    base.tests.cases.shells
+ * @package       autotest
+ * @subpackage    autotest.tests.cases.shells
  * @since         v 1.0 (06-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
@@ -184,12 +184,14 @@ class RepoShellTest extends CakeTestCase {
 
 		ksort($keys);
 		ksort($rules);
-
+		if ($file) {
+			$file .= " :\n";
+		}
 		$this->_reporter->_test_stack[] = 'test' . Inflector::classify(implode($rules, ', '));
-		$this->assertIdentical($rules, $keys, "\n" . 'Expected Errors (' . implode($rule, ', ') . ') do not match results (' . implode($keys, ', ') . ')');
+		$this->assertIdentical($rules, $keys, "\n" . $file . 'Expected Errors (' . implode($rule, ', ') . ') do not match results (' . implode($keys, ', ') . ')');
 
 		if ($isError) {
-			$this->assertTrue($this->Repo->returnValue, 'Test case was expected to fail, but it passed');
+			$this->assertTrue($this->Repo->returnValue, $file .'Test case was expected to fail, but it passed');
 		}
 		array_pop($this->_reporter->_test_stack);
 	}
@@ -277,7 +279,7 @@ class RepoShellTest extends CakeTestCase {
 		$path = $this->_path('multiple_debug.php');
 		$this->Repo->reset();
 		$this->Repo->checkFile($path);
-		$this->assertIdentical(count($this->Repo->errors[$path]['debug']), 2);
+		$this->assertIdentical(count($this->Repo->errors[$path]['debug']), 2, 'multiple_debug.php Multiple errors expected');
 
 		$path = $this->_path('multiple_failing_rules.php');
 		$this->Repo->reset();
@@ -483,7 +485,7 @@ class RepoShellTest extends CakeTestCase {
 			$this->Repo->reset();
 			$this->Repo->checkFile($this->_path($testFile));
 			if ($expectPass) {
-				$this->assertIdentical($this->Repo->returnValue, 0);
+				$this->assertIdentical($this->Repo->returnValue, 0, $testFile . ":\n didn't pass but was expected to");
 			} else {
 				$this->assertFailedRules($rule);
 			}

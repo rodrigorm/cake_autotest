@@ -1,0 +1,2 @@
+<?
+// No closing php tag
