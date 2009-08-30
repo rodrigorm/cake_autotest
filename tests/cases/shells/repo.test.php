@@ -36,6 +36,8 @@ if (!class_exists('ShellDispatcher')) {
 if (!class_exists('RepoShell')) {
 	App::import('Shell', 'Autotest.Repo');
 	App::import('Shell', 'Repo');
+	App::import('Task', 'Autotest.Find');
+	App::import('Task', 'Find');
 }
 
 /**
@@ -71,6 +73,8 @@ class TestRepoShell extends RepoShell {
 			'app' => APP
 		), $params);
 		$this->initialize();
+		$this->loadTasks();
+		$this->Find->params =& $this->params;
 		unset($this->settings['rules']['failsTests']);
 		$this->settings['skipTests'] = false;
 		$this->_reset();

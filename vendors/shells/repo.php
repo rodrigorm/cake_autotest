@@ -41,6 +41,14 @@
 class RepoShell extends Shell {
 
 /**
+ * tasks property
+ *
+ * @var array
+ * @access public
+ */
+	var $tasks = array('Find');
+
+/**
  * name property
  *
  * @var string 'Repo'
@@ -572,7 +580,7 @@ class RepoShell extends Shell {
  */
 	function linkPreCommit() {
 		$source = realpath(dirname(dirname(__FILE__))) . DS . 'pre-commit';
-		$files = am($this->_find('pre-commit.sample'), $this->_find('pre-commit'));
+		$files = am($this->Find->files('pre-commit.sample'), $this->Find->files('pre-commit'));
 		$files = array_unique($files);
 		foreach($files as &$file) {
 			$file = str_replace('.sample', '', $file);
@@ -610,6 +618,22 @@ class RepoShell extends Shell {
 				}
 			}
 		}
+	}
+
+/**
+ * loadTasks method
+ *
+ * @return void
+ * @access public
+ */
+	function loadTasks() {
+		parent::loadTasks();
+		foreach($this->Find->settings as $key => $val) {
+			if (isset($this->settings[$key])) {
+				$this->Find->settings[$key] =& $this->settings[$key];
+			}
+		}
+		$this->Find->startup();
 	}
 
 /**
@@ -739,27 +763,6 @@ class RepoShell extends Shell {
 	}
 
 /**
- * find method
- *
- * @param string $pattern ''
- * @return void
- * @access protected
- */
-	function _find($pattern = '') {
-		if (!$pattern) {
-			return array();
-		}
-		if (DS === '\\') {
-			$Folder = new Folder('.');
-			return $Folder->findRecursive($pattern);
-		}
-		$cmd = 'find -name "' . $pattern . '"';
-		$this->_log($cmd, null, 'debug');
-		exec($cmd, $out);
-		return $out;
-	}
-
-/**
  * listFiles method
  *
  * For windows use $Folder->findRecursive and find all php/ctp files in the working folder
@@ -773,125 +776,20 @@ class RepoShell extends Shell {
 		if (!empty($this->args)) {
 			if ($this->args[0] == 'pre-commit') {
 				if ($this->settings['repoType'] == 'git') {
-					return $this->_listGitFiles();
+					return $this->Find->git();
 				} elseif ($this->settings['repoType'] == 'svn') {
-					return $this->_listSvnFiles();
+					return $this->Find->svn();
 				}
 			} elseif ($this->args[0] == 'working') {
 				if ($this->settings['repoType'] == 'git') {
-					return $this->_listGitFiles('working');
+					return $this->Find->git('working');
 				} elseif ($this->settings['repoType'] == 'svn') {
-					return $this->_listSvnFiles('working');
+					return $this->Find->svn('working');
 				}
 			}
-			$arg = $this->args[0];
-			if ($arg[0] === '*') {
-				foreach ($this->args as $pattern) {
-					if ($pattern[0] === '*') {
-						$suffix[] = '-name "' . $pattern . '"';
-					}
-				}
-			} else {
-				if (is_file($arg)) {
-					return array($arg);
-				}
-				$this->params['working'] = rtrim($arg, DS) . DS;
-			}
+			return $this->Find->files($this->args[0]);
 		}
-		if (DS === '\\') {
-			$Folder = new Folder($this->params['working']);
-			$files = $Folder->findRecursive();
-		} else {
-			$cmd = 'find ' . $this->params['working'] . ' -regextype posix-extended';
-			/*
-			if (!empty($this->settings['includePattern'])) {
-				$pattern = '.*' . trim($this->settings['includePattern'], $this->settings['includePattern'][0]);
-				if ($pattern[strlen($pattern)-1] !== '$') {
-					$pattern .= '.*';
-				}
-				$pattern = str_replace(array('|'), array('\|'), $pattern);
-				$cmd .= ' -regex ' . $pattern;
-			}
-			*/
-			$cmd .= ' -type f';
-			$this->_log($cmd, null, 'debug');
-			exec($cmd, $files);
-		}
-		foreach ($files as $i => $file) {
-			if (!empty($this->settings['includePattern']) && !preg_match($this->settings['includePattern'], $file) ||
-				(!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file))) {
-				unset ($files[$i]);
-			}
-		}
-		return $files;
-	}
-
-/**
- * listGitFiles method
- *
- * If it's the first commit, diff against a fictional commit to list all files
- * Otherwise, diff to head
- * If there's no output, pre-commit has been called explicitly and there isn't anything to be
- * committed - so use the un-committed and un-added changes
- *
- * @return array of files
- * @access protected
- */
-	function _listGitFiles($type = 'pre-commit') {
-		$output = null;
-		$return = $this->_exec('git rev-parse --verify HEAD', $output);
-		if ($return) {
-			$against = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
-		} else {
-			$against = 'HEAD';
-		}
-		$output = null;
-		if ($type === 'pre-commit') {
-			$this->_exec("git diff-index --cached --name-only $against", $output);
-		} else {
-			$this->_exec("git diff-index --name-only $against", $output);
-		}
-		return $output;
-	}
-
-/**
- * listSvnFiles method
- *
- * Use svnlook to find what's changed. Allow checks to be skipped by including "@noverify" in a
- * commit message unless the setting 'disableNoverify' is set to true. This setting is svn specific
- *
- * @return array of files
- * @access protected
- */
-
-	function _listSvnFiles($type = 'pre-commit') {
-		if (DS == '/') {
-			$svnlook = exec('which svnlook');
-		} elseif (!empty($this->params['svnlook'])) {
-			$svnlook = $this->params['svnlook'];
-		}
-		if (empty($svnlook)) {
-			trigger_error('RepoShell::_listSvnFiles could not find svnlook executable');
-			return array();
-		}
-		if (isset($this->params['txn']) && isset($this->params['repo'])) {
-			if (empty($this->settings['disableNoverify'])) {
-				$cmd = "$svnlook log -t {$this->params['txn']} " . $this->params['repo'];
-				$this->_exec($cmd, $message);
-				if (preg_match('/@noverify[\r\n]|@noverify$/s', implode($message, "\n"))) {
-					$this->out('Checks overriden by @noverify marker found at the end of a line');
-					return array();
-				}
-			}
-			$cmd = "$svnlook changed -t {$this->params['txn']} " . $this->params['repo'];
-			$this->_exec($cmd, $out);
-		} else {
-			$this->_exec('svn status -q', $out);
-		}
-		foreach($out as &$file) {
-			$file = trim(substr($file, 4));
-		}
-		return $out;
+		return $this->Find->files();
 	}
 
 /**
