@@ -42,6 +42,9 @@ class AutotestController extends Controller {
 	}
 
 	function index() {
+		if (Configure::read() == 0) {
+			$this->redirect('/');
+		}
 	}
 
 	function run() {
