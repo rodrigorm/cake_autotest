@@ -64,8 +64,8 @@ class FindTask extends Shell {
  * @return void
  * @access public
  */
-	function files($pattern = '(.*\.php|.*\.ctp)$') {
-		$return = $this->_files($pattern);
+	function files($pattern = '(.*\.php|.*\.ctp)$', $optimize = true) {
+		$return = $this->_files($pattern, $optimize);
 		if (empty($this->settings['includePattern']) && empty($this->settings['excludePattern'])) {
 			return $return;
 		}
@@ -174,16 +174,17 @@ class FindTask extends Shell {
 /**
  * files method
  *
- * @param string $pattern '.*'
+ * @param mixed $pattern
+ * @param mixed $optimize
  * @return void
  * @access protected
  */
-	function _files() {
-		if (!$this->settings['findCmd']) {
+	function _files($pattern, $optimize) {
+		if (!$this->settings['findCmd'] || !$optimize) {
 			$Folder = new Folder($this->params['working']);
 			return $Folder->findRecursive($pattern);
 		}
-		$cmd = $this->_prepareCmd($this->settings['findCmd']);
+		$cmd = $this->_prepareCmd($this->settings['findCmd'], $pattern);
 		$this->_log($cmd, null, 'debug');
 		exec($cmd, $out);
 		return $out;
@@ -204,11 +205,13 @@ class FindTask extends Shell {
 /**
  * prepareCmd method
  *
+ * @TODO $pattern unused
  * @param mixed $cmd
+ * @param mixed $pattern
  * @return void
  * @access protected
  */
-	function _prepareCmd($cmd) {
+	function _prepareCmd($cmd, $pattern) {
 		$subs = am($this->settings, $this->params);
 		return String::insert($cmd, $subs);
 	}
