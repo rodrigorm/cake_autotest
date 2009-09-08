@@ -581,42 +581,44 @@ class RepoShell extends Shell {
  */
 	function linkPreCommit() {
 		$source = realpath(dirname(dirname(__FILE__))) . DS . 'pre-commit';
-		$files = am($this->Find->files('pre-commit.sample'), $this->Find->files('pre-commit'));
-		$files = array_unique($files);
-		foreach($files as &$file) {
-			$file = str_replace('.sample', '', $file);
+		$hooks = array();
+		$this->_exec(String::insert('find :working -name hooks', $this->params), $hooks);
+		foreach($hooks as &$file) {
+			if (basename(dirname($file)) !== '.git') {
+				$file = false;
+				continue;
+			}
+			$file .= '/pre-commit';
+			if ($_file = realpath($file)) {
+				$file = $_file;
+			}
 		}
-		$files = array_unique($files);
-		$total = count($files);
-		foreach($files as &$file) {
-			$file = str_replace('.sample', '', $file);
-			$file = realpath($file);
-		}
-		$files = array_filter(array_unique($files));
-		if ($key = array_search($source, $files)) {
+		$files = array_filter(array_unique($hooks));
+		$key = array_search($source, $files);
+		if ($key !== false) {
 			unset ($files[$key]);
 		}
-		$unique = count($files);
-		$this->out($unique . ' pre-commit files found');
+		$total = count($hooks);
+		$this->out($total . ' pre-commit files found');
 		$toProcess = count($files);
 		$this->out($toProcess . ' pre-commit files to process');
-		if (DS === '\\') {
-			foreach($files as $file) {
+		foreach($files as $file) {
+			if (DS === '\\') {
 				$file .= '.bat';
-				if (copy($source, $file)) {
-					$this->out($file, ' created');
-				} else {
-					$this->out($file, ' couldn\'t be created');
-				}
 			}
-		} else {
-			foreach($files as $file) {
-				rename($file, $file . '.bak');
-				if (symlink($source, $file)) {
-					$this->out($file, ' link created');
-				} else {
-					$this->out($file, ' link couldn\'t be created');
+			if (file_exists($file)) {
+				if (file_exists($file . '.bak')) {
+					unlink($file . '.bak');
 				}
+				rename($file, $file . '.bak');
+			}
+			@unlink($file);
+			if (symlink($source, $file)) {
+				$this->out($file, ' (link) created');
+			} elseif (copy($source, $file)) {
+				$this->out($file, ' created');
+			} else {
+				$this->out($file, ' couldn\'t be created');
 			}
 		}
 	}
