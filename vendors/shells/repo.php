@@ -1057,6 +1057,9 @@ class RepoShell extends Shell {
 					if (!is_numeric($line)) {
 						$line = '0';
 					}
+					if ($this->settings['vimTips'] && !empty($this->settings['rules'][$rule]['vimTip'])) {
+						$error = $this->settings['rules'][$rule]['vimTip'] . ' ' . $error;
+					}
 					$errors[$file . $line] = "$error in $file on line $line";
 				}
 			}
