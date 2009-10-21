@@ -121,7 +121,8 @@ class RepoShell extends Shell {
  * quiet - suppress most output
  * that have been generated will be output
  * logLevel - limit what sort of messages are shown. careful with 'debug' - very verbose
- * vimTips - @TODO or delete
+ * vimTips - write tips into error messages
+ * suppressDuplicateErrors - if the same error appears 1+ times in a file, only report the first error
  * rules - array of name => params
  * 	rule => the name of a method, or a regex to check
  * 	last => if this rule fails - bail on the rest
@@ -139,6 +140,7 @@ class RepoShell extends Shell {
 		'excludePattern' => null,
 		'includePattern' => null,
 		'skipTests' => '@(test_app[\\\/])@',
+		'suppressDuplicateErrors' => true,
 		'rules' => array(
 			'skipFile' => array(
 				'isError' => false,
@@ -1010,9 +1012,13 @@ class RepoShell extends Shell {
 			} else {
 				$this->out(sprintf('%s Files checked, %s with errors:', $count, $errors));
 			}
-			foreach($this->errors as $file => $messages) {
+			foreach($this->errors as $file => &$messages) {
 				$this->out('    ' . $file);
-				foreach($messages as $rule => $fails) {
+				foreach($messages as $rule => &$fails) {
+					if ($this->settings['suppressDuplicateErrors']) {
+						reset($fails);
+						$fails = array(current($fails));
+					}
 					foreach($fails as $error) {
 						$this->out('            ' . $error);
 					}
@@ -1044,12 +1050,12 @@ class RepoShell extends Shell {
  * @access protected
  */
 	function _writeErrorFile() {
-		$errors = array();
-		foreach($this->errors as $file => $messages) {
+		$errors = $script = array();
+		foreach($this->errors as $file => &$messages) {
 			if ($this->_logLevel[$this->settings['logLevel']] < $this->_logLevel['err']) {
 				continue;
 			}
-			foreach($messages as $rule => $fails) {
+			foreach($messages as $rule => &$fails) {
 				foreach($fails as $line => $error) {
 					if (preg_match('@in [^ ] on line @', $error)) {
 						$errors[$file . $line] = $error;
@@ -1057,10 +1063,15 @@ class RepoShell extends Shell {
 					if (!is_numeric($line)) {
 						$line = '0';
 					}
-					if ($this->settings['vimTips'] && !empty($this->settings['rules'][$rule]['vimTip'])) {
-						$error = $this->settings['rules'][$rule]['vimTip'] . ' ' . $error;
+					if ($this->settings['vimTips']) {
+						if (!empty($this->settings['rules'][$rule]['vimTip'])) {
+							$error = $this->settings['rules'][$rule]['vimTip'] . ' ' . $error;
+							$script[$file][$rule][$line] = $this->settings['rules'][$rule]['vimTip'];
+						} else {
+							$script[$file][$rule][$line] = "match Error /\%{$line}l/";
+						}
 					}
-					$errors[$file . $line] = "$error in $file on line $line";
+					$errors[$file . $rule . $line] = "$error in $file on line $line";
 				}
 			}
 		}
@@ -1069,5 +1080,18 @@ class RepoShell extends Shell {
 		}
 		file_put_contents($this->params['working'] . DS . 'errors.err', implode("\n", array_filter($errors)));
 		$this->out("type 'vim -q errors.err' to review failures");
+		if ($script) {
+			$command = '';
+			foreach($script as $file => $rules) {
+				foreach($rules as $rule => $lines) {
+					foreach($lines as $line => $tip) {
+						$command .= ":{$line} | $tip ";
+					}
+				}
+				$script[$file] = 'vim ' . $file . ' -c "' . $command . '"';
+			}
+		}
+		file_put_contents($this->params['working'] . DS . 'review.sh', implode("\n", array_filter($script)));
+		$this->out("type '. review.sh' to auto-correct and review failures");
 	}
 }
