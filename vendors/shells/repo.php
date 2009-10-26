@@ -617,18 +617,21 @@ class RepoShell extends Shell {
 				$file .= '.bat';
 			}
 			if (file_exists($file)) {
-				if (file_exists($file . '.bak')) {
-					unlink($file . '.bak');
+				if (empty($this->params['dry'])) {
+					if (file_exists($file . '.bak')) {
+						unlink($file . '.bak');
+					}
+					rename($file, $file . '.bak');
 				}
-				rename($file, $file . '.bak');
 			}
-			@unlink($file);
-			if (symlink($source, $file)) {
-				$this->out($file, ' (link) created');
+			if (!empty($this->params['dry'])) {
+				$this->out($file. ' identified');
+			} elseif (symlink($source, $file)) {
+				$this->out($file. ' (link) created');
 			} elseif (copy($source, $file)) {
-				$this->out($file, ' created');
+				$this->out($file. ' created');
 			} else {
-				$this->out($file, ' couldn\'t be created');
+				$this->out($file. ' couldn\'t be created');
 			}
 		}
 	}
