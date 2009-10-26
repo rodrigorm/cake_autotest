@@ -137,6 +137,7 @@ class RepoShell extends Shell {
 		'quiet' => false,
 		'logLevel' => 'notice', // 'err', 'warning', 'notice', 'info', 'debug'
 		'vimTips' => true,
+		'dontDeletePattern' => '@(tmp[\\\/].*empty)@',
 		'excludePattern' => null,
 		'includePattern' => null,
 		'skipTests' => '@(test_app[\\\/])@',
@@ -415,12 +416,19 @@ class RepoShell extends Shell {
 		$this->settings['_supressMessages'] = true;
 		foreach ($files as $i => $file) {
 			$this->out($file . ' ', false);
-			if (!file_exists($file) || !preg_match('@(.*\.php|.*\.ctp)$@', $file) ||
+			if (!file_exists($file)) {
+				if (empty($this->settings['dontDeletePattern']) || !preg_match($this->settings['dontDeletePattern'], $file)) {
+					$this->out('❯');
+					continue;
+				}
+				$this->errors[$file]['dontDeletePattern'][0] = 'An empty file has been deleted';
+				$this->returnValue = 1;
+				$this->out('✘');
+			} elseif(!preg_match('@(.*\.php|.*\.ctp)$@', $file) ||
 				(!empty($this->settings['includePattern']) && !preg_match($this->settings['includePattern'], $file))) {
 				$this->out('❯');
 				continue;
-			}
-			if ($this->checkFile($file)) {
+			} elseif ($this->checkFile($file)) {
 				$this->out('✔');
 			} else {
 				$this->out('✘');
