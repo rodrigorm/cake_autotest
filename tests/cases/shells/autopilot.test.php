@@ -37,11 +37,13 @@ Mock::generate('ShellDispatcher');
 
 App::import('Core', 'Folder');
 
-App::import('Shell', 'Autotest.AutoTest');
-App::import('Shell', 'AutoTest');
+App::import('Shell', 'Autotest.Autopilot');
+if (!class_exists('AutopilotShell')) {
+	App::import('Shell', 'Autopilot');
+}
 Mock::generatePartial(
-	'AutoTestShell',
-	'AutoTestShellTestVersion',
+	'AutopilotShell',
+	'AutopilotShellTestVersion',
 	array(
 		'void',
 		'_runTest'
@@ -51,13 +53,13 @@ Mock::generatePartial(
 define('TEST_APP', dirname(dirname(dirname(__FILE__))) . DS . 'test_app');
 
 /**
- * AutoTestTestCase class
+ * AutopilotTestCase class
  *
  * @uses          CakeTestCase
  * @package       autotest
  * @subpackage    autotest.tests.cases.shells
  */
-class AutoTestTestCase extends CakeTestCase {
+class AutopilotTestCase extends CakeTestCase {
 
 /**
  * setUp method
@@ -68,10 +70,10 @@ class AutoTestTestCase extends CakeTestCase {
 	function startTest() {
 		$this->Folder = new Folder();
 		$this->Dispatcher = new MockShellDispatcher();
-		$this->AutoTest = new AutoTestShellTestVersion();
-		$this->AutoTest->Dispatch = $this->Dispatcher;
-		$this->AutoTest->folder = new Folder(TEST_APP);
-		$this->AutoTest->params = array(
+		$this->Autopilot = new AutopilotShellTestVersion();
+		$this->Autopilot->Dispatch = $this->Dispatcher;
+		$this->Autopilot->folder = new Folder(TEST_APP);
+		$this->Autopilot->params = array(
 			'working' => TEST_APP,
 			'app' => 'test_app',
 			'root' => dirname(TEST_APP),
@@ -79,7 +81,7 @@ class AutoTestTestCase extends CakeTestCase {
 			'notify' => 'log',
 			'checkAllOnStart' => false,
 		);
-		$this->AutoTest->buildPaths();
+		$this->Autopilot->buildPaths();
 	}
 
 /**
@@ -97,7 +99,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testPresenceOfClass() {
-		$this->assertTrue(class_exists('AutoTestShell'));
+		$this->assertTrue(class_exists('AutopilotShell'));
 	}
 
 /**
@@ -107,7 +109,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testAddHooks() {
-		$this->AutoTest->addHooks();
+		$this->Autopilot->addHooks();
 		$expected = array(
 			Hooks::green => array(
 				array('Notify', 'green')
@@ -119,7 +121,7 @@ class AutoTestTestCase extends CakeTestCase {
 				array('Notify', 'allGood')
 			)
 		);
-		$this->assertEqual(AutoTestShell::$hooks, $expected);
+		$this->assertEqual(AutopilotShell::$hooks, $expected);
 	}
 
 /**
@@ -129,13 +131,13 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testRunTests() {
-		$this->AutoTest->filesToTest = array(
+		$this->Autopilot->filesToTest = array(
 			'file_1.php',
 			'file_2.php'
 		);
-		$this->AutoTest->setReturnValue('_runTest', 'Pass ✔');
-		$this->AutoTest->expectCallCount('_runTest', 2);
-		$this->AutoTest->_runTests();
+		$this->Autopilot->setReturnValue('_runTest', 'Pass ✔');
+		$this->Autopilot->expectCallCount('_runTest', 2);
+		$this->Autopilot->_runTests();
 	}
 
 /**
@@ -145,17 +147,17 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testRunTestsSetFailsOnFailTest() {
-		$this->AutoTest->filesToTest = array(
+		$this->Autopilot->filesToTest = array(
 			'file_1.php',
 			'file_2.php'
 		);
-		$this->AutoTest->setReturnValueAt(0, '_runTest', 'Pass ✔');
-		$this->AutoTest->setReturnValueAt(1, '_runTest', 'Fail ✘');
-		$this->AutoTest->_runTests();
+		$this->Autopilot->setReturnValueAt(0, '_runTest', 'Pass ✔');
+		$this->Autopilot->setReturnValueAt(1, '_runTest', 'Fail ✘');
+		$this->Autopilot->_runTests();
 		$expected = array(
 			'file_2.php' => 'file_2.php'
 		);
-		$this->assertEqual($this->AutoTest->fails, $expected);
+		$this->assertEqual($this->Autopilot->fails, $expected);
 	}
 
 /**
@@ -165,7 +167,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testAllGood() {
-		$this->assertTrue($this->AutoTest->_allGood());
+		$this->assertTrue($this->Autopilot->_allGood());
 	}
 
 /**
@@ -175,10 +177,10 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testAllGoodReturnFalse() {
-		$this->AutoTest->fails = array(
+		$this->Autopilot->fails = array(
 			'file_1.php'
 		);
-		$this->assertFalse($this->AutoTest->_allGood());
+		$this->assertFalse($this->Autopilot->_allGood());
 	}
 
 /**
@@ -188,17 +190,17 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testReset() {
-		$this->AutoTest->filesToTest = array(
+		$this->Autopilot->filesToTest = array(
 			'file_1.php'
 		);
-		$this->AutoTest->lastMTime = time();
-		$this->AutoTest->fails = array(
+		$this->Autopilot->lastMTime = time();
+		$this->Autopilot->fails = array(
 			'file_2.php'
 		);
-		$this->AutoTest->_reset();
-		$this->assertNull($this->AutoTest->filesToTest);
-		$this->assertNull($this->AutoTest->lastMTime);
-		$this->assertEqual($this->AutoTest->fails, array());
+		$this->Autopilot->_reset();
+		$this->assertNull($this->Autopilot->filesToTest);
+		$this->assertNull($this->Autopilot->lastMTime);
+		$this->assertEqual($this->Autopilot->fails, array());
 	}
 
 /**
@@ -208,17 +210,17 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testAddHook() {
-		$_hooks = AutoTestShell::$hooks;
-		AutoTestShell::$hooks = array();
+		$_hooks = AutopilotShell::$hooks;
+		AutopilotShell::$hooks = array();
 		$callback = 'sprintf';
-		$this->AutoTest->addHook(Hooks::green, $callback);
+		$this->Autopilot->addHook(Hooks::green, $callback);
 		$expected = array(
 			Hooks::green => array(
 				$callback
 			)
 		);
-		$this->assertEqual(AutoTestShell::$hooks, $expected);
-		AutoTestShell::$hooks = $_hooks;
+		$this->assertEqual(AutopilotShell::$hooks, $expected);
+		AutopilotShell::$hooks = $_hooks;
 	}
 
 /**
@@ -228,7 +230,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testFindFiles() {
-		$this->AutoTest->settings['excludePattern'] = '@one(\\.test)?\\.php$@';
+		$this->Autopilot->settings['excludePattern'] = '@one(\\.test)?\\.php$@';
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'models' . DS . 'post.php',
@@ -236,9 +238,9 @@ class AutoTestTestCase extends CakeTestCase {
 			TEST_APP . DS . 'plugins' . DS . 'test_plugin' . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'test_plugin_controller.test.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
 		);
-		$result = $this->AutoTest->_findFiles();
+		$result = $this->Autopilot->_findFiles();
 		$this->assertEqual($result, $expected);
-		$this->AutoTest->lastMTime = null;
+		$this->Autopilot->lastMTime = null;
 	}
 
 /**
@@ -248,14 +250,14 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testFindFilesIgnore() {
-		$this->AutoTest->settings['excludePattern'] = '@(models[\\\/]post\.php|[\\\/]test_plugin[\\\/]|[\\\/]one(\.test)?\.php$)@';
+		$this->Autopilot->settings['excludePattern'] = '@(models[\\\/]post\.php|[\\\/]test_plugin[\\\/]|[\\\/]one(\.test)?\.php$)@';
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 			TEST_APP . DS . 'tests' . DS . 'cases' . DS . 'controllers' . DS . 'posts_controller.test.php',
 		);
-		$result = $this->AutoTest->_findFiles();
+		$result = $this->Autopilot->_findFiles();
 		$this->assertEqual($result, $expected);
-		$this->AutoTest->lastMTime = null;
+		$this->Autopilot->lastMTime = null;
 	}
 
 /**
@@ -267,13 +269,13 @@ class AutoTestTestCase extends CakeTestCase {
 	function testFindFilesToTest() {
 		$time = mktime();
 		$past = $time - 1;
-		$this->AutoTest->lastMTime = $past;
+		$this->Autopilot->lastMTime = $past;
 		touch(TEST_APP . DS . 'controllers' . DS . 'posts_controller.php', $time);
 
 		$expected = array(
 			TEST_APP . DS . 'controllers' . DS . 'posts_controller.php',
 		);
-		$result = $this->AutoTest->_findFiles();
+		$result = $this->Autopilot->_findFiles();
 		$this->assertEqual($result, $expected);
 	}
 
@@ -284,7 +286,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testPass() {
-		$this->AutoTest->params['working'] = TEST_APP . DS . 'controllers';
+		$this->Autopilot->params['working'] = TEST_APP . DS . 'controllers';
 		$base = TEST_APP . DS . 'controllers' . DS;
 		$testFile = 'posts_controller.php';
 		$Folder = new Folder($base);
@@ -297,9 +299,9 @@ class AutoTestTestCase extends CakeTestCase {
 				touch($base . $file, $prev, $prev);
 			}
 		}
-		$this->AutoTest->lastMTime = time() - 1;
-		$this->AutoTest->setReturnValue('_runTest', 'Pass ✔');
-		$this->AutoTest->_runTests();
+		$this->Autopilot->lastMTime = time() - 1;
+		$this->Autopilot->setReturnValue('_runTest', 'Pass ✔');
+		$this->Autopilot->_runTests();
 
 		$expected = array(
 			'passed' => array(
@@ -314,7 +316,7 @@ class AutoTestTestCase extends CakeTestCase {
 			'unknownCount' => 0,
 			'totalCount' => 1,
 		);
-		$this->assertEqual($this->AutoTest->results, $expected);
+		$this->assertEqual($this->Autopilot->results, $expected);
 	}
 
 /**
@@ -324,7 +326,7 @@ class AutoTestTestCase extends CakeTestCase {
  * @access public
  */
 	function testFail() {
-		$this->AutoTest->params['working'] = TEST_APP . DS . 'controllers';
+		$this->Autopilot->params['working'] = TEST_APP . DS . 'controllers';
 		$base = TEST_APP . DS . 'controllers' . DS;
 		$testFile = 'other_controller.php';
 		$Folder = new Folder($base);
@@ -341,9 +343,9 @@ class AutoTestTestCase extends CakeTestCase {
 			}
 		}
 
-		$this->AutoTest->lastMTime = time() - 1;
-		$this->AutoTest->setReturnValue('_runTest', 'Fail ✘');
-		$this->AutoTest->_runTests();
+		$this->Autopilot->lastMTime = time() - 1;
+		$this->Autopilot->setReturnValue('_runTest', 'Fail ✘');
+		$this->Autopilot->_runTests();
 
 		$expected = array(
 			'passed' => array(),
@@ -359,7 +361,7 @@ class AutoTestTestCase extends CakeTestCase {
 			'totalCount' => 1,
 		);
 		$File->delete();
-		$this->assertEqual($this->AutoTest->results, $expected);
+		$this->assertEqual($this->Autopilot->results, $expected);
 	}
 
 /**
@@ -375,9 +377,9 @@ class AutoTestTestCase extends CakeTestCase {
 		$time = strtotime('+1 second');
 		$future = strtotime('+2 seconds');
 
-		$this->AutoTest->lastMTime = $time;
+		$this->Autopilot->lastMTime = $time;
 		touch($testfile, $future);
-		$this->AutoTest->_waitForChanges();
-		$this->assertEqual($this->AutoTest->filesToTest, array($testfile));
+		$this->Autopilot->_waitForChanges();
+		$this->assertEqual($this->Autopilot->filesToTest, array($testfile));
 	}
 }
