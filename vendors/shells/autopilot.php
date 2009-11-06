@@ -44,13 +44,13 @@ class Hooks {
 }
 
 /**
- * AutoTestShell class
+ * AutopilotShell class
  *
  * @uses          Shell
  * @package       autotest
  * @subpackage    autotest.vendors.shells
  */
-class AutoTestShell extends Shell {
+class AutopilotShell extends Shell {
 
 /**
  * lastMTime property
@@ -105,13 +105,13 @@ class AutoTestShell extends Shell {
 	);
 
 	function initialize() {
-		if (file_exists('config' . DS . 'auto_test.php')) {
-			include('config' . DS . 'auto_test.php');
+		if (file_exists('config' . DS . 'auto_pilot.php')) {
+			include('config' . DS . 'auto_pilot.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
-		} elseif (file_exists(APP . 'config' . DS . 'auto_test.php')) {
-			include(APP . 'config' . DS . 'auto_test.php');
+		} elseif (file_exists(APP . 'config' . DS . 'auto_pilot.php')) {
+			include(APP . 'config' . DS . 'auto_pilot.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
@@ -137,7 +137,7 @@ class AutoTestShell extends Shell {
 
 		Notify::$method = $this->settings['notify'];
 		$this->addHooks();
-		Notify::message('AutoTest Starting', 'in ' . $this->params['working'], 0, false);
+		Notify::message('Autopilot Starting', 'in ' . $this->params['working'], 0, false);
 		$this->buildPaths();
 		$this->run();
 	}
@@ -149,9 +149,9 @@ class AutoTestShell extends Shell {
  * @access public
  */
 	function addHooks() {
-		AutoTestShell::addHook(Hooks::green, array('Notify', 'green'));
-		AutoTestShell::addHook(Hooks::red, array('Notify', 'red'));
-		AutoTestShell::addHook(Hooks::all_good, array('Notify', 'allGood'));
+		AutopilotShell::addHook(Hooks::green, array('Notify', 'green'));
+		AutopilotShell::addHook(Hooks::red, array('Notify', 'red'));
+		AutopilotShell::addHook(Hooks::all_good, array('Notify', 'allGood'));
 	}
 
 /**
@@ -351,10 +351,10 @@ class AutoTestShell extends Shell {
 			return false;
 		}
 
-		if (empty(AutoTestShell::$hooks[$hook])) {
-			AutoTestShell::$hooks[$hook] = array();
+		if (empty(AutopilotShell::$hooks[$hook])) {
+			AutopilotShell::$hooks[$hook] = array();
 		}
-		AutoTestShell::$hooks[$hook][] = $callback;
+		AutopilotShell::$hooks[$hook][] = $callback;
 
 		return true;
 	}
@@ -370,10 +370,10 @@ class AutoTestShell extends Shell {
 		$params = func_get_args();
 		array_shift($params);
 
-		if (empty(AutoTestShell::$hooks[$hook])) {
+		if (empty(AutopilotShell::$hooks[$hook])) {
 			return false;
 		}
-		foreach (AutoTestShell::$hooks[$hook] as $callback) {
+		foreach (AutopilotShell::$hooks[$hook] as $callback) {
 			call_user_func_array($callback, $params);
 		}
 	}
@@ -447,7 +447,7 @@ class AutoTestShell extends Shell {
 		}
 
 		if ($system == 'Darwin') {
-			$tmpfile = TMP . 'auto_test_find_newer';
+			$tmpfile = TMP . 'auto_pilot_find_newer';
 			touch($tmpfile, $this->lastMTime);
 			return ' -cnewer ' . $tmpfile;
 		} else {
