@@ -1,21 +1,19 @@
 <?php
 /**
- * Short description for notify.php
- *
- * Long description for notify.php
+ * Send status messages to the OS
  *
  * PHP version 5
  *
- * Copyright (c) 2009, Andy Dawson
+ * Copyright (c) 2009, Rodrigo Moyle
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
  * @filesource
- * @copyright     Copyright (c) 2009, Andy Dawson
- * @link          www.ad7six.com
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors
+ * @copyright     Copyright (c) 2009, Rodrigo Moyle
+ * @link          blog.rodrigorm.com.br
+ * @package       autotest
+ * @subpackage    autotest.vendors
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
@@ -24,8 +22,8 @@
  * Notify class
  *
  * @uses
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors
+ * @package       autotest
+ * @subpackage    autotest.vendors
  */
 class Notify {
 
@@ -57,7 +55,7 @@ class Notify {
  */
 	public static $notifiers = array(
 		'NotifySend' => 'notify-send',
-		'Growl' => array(
+		'Growlnotify' => array(
 			'cmd' => 'growlnotify',
 			'statuses' => array(
 				'success' => '/Applications/Mail.app/Contents/Resources/status-available.tiff',
@@ -76,7 +74,7 @@ class Notify {
  * @access public
  */
 	static function allGood() {
-		Notify::message('Tests Passed');
+		Notify::message('All Tests Passed');
 	}
 
 /**
@@ -104,7 +102,8 @@ class Notify {
  * @access public
  */
 	static function green($params) {
-		Notify::message('Tests Passed', Notify::_normalize($params));
+		list($title, $message) =  Notify::_normalize($params);
+		Notify::message($title, $message);
 	}
 
 /**
@@ -118,7 +117,8 @@ class Notify {
  * @access public
  */
 	static function red($fails, $params) {
-		Notify::message($fails . ' Fails', Notify::_normalize($params), -2, 'error');
+		list($title, $message) =  Notify::_normalize($params);
+		Notify::message($title, $message, -2, 'error');
 	}
 
 /**
@@ -137,7 +137,10 @@ class Notify {
 		}
 		$img = '';
 		if (!empty(Notify::$statuses[$status])) {
-			$img = dirname(dirname(dirname(__FILE__))) . DS . 'img' . DS . Notify::$statuses[$status];
+			$img = Notify::$statuses[$status];
+			if (!file_exists($img)) {
+				$img = dirname(__FILE__) . DS . 'img' . DS . $img;
+			}
 		}
 		if (empty($title)) {
 			$title = APP_DIR;
@@ -158,12 +161,29 @@ class Notify {
  * @access protected
  */
 	static protected function _normalize($params) {
-		if (!isset($params['complete'])) {
-			$params['complete'] = 0;
+		$summary = $params['totalCount'] . ' files.';
+		unset($params['totalCount']);
+		unset($params['passed']);
+		$counts = array();
+		if (isset($params['passedCount'])) {
+			$counts[] = $params['passedCount'] . ' ✔';
+			unset($params['passedCount']);
 		}
-		$message = $params['complete'] . '/' . $params['total'];
-		unset($params['complete']);
-		unset($params['total']);
+		if (isset($params['failedCount'])) {
+			$counts[] = $params['failedCount'] . ' ✘';
+			unset($params['failedCount']);
+		}
+		if (isset($params['skippedCount'])) {
+			$counts[] = $params['skippedCount'] . ' ❯';
+			unset($params['skippedCount']);
+		}
+		if (isset($params['unknownCount'])) {
+			$counts[] = $params['unknownCount'] . ' ?';
+			unset($params['unknownCount']);
+		}
+		if ($counts) {
+			$summary .= ' ' . implode($counts, ', ');
+		}
 
 		foreach ($params as $key => $value) {
 			if ($value === 0) {
@@ -179,7 +199,7 @@ class Notify {
 				$params[$key] = $value . ' ' . $key;
 			}
 		}
-		return $message . "\n" . implode($params, "\n");
+		return array($summary, implode($params, "\n"));
 	}
 
 /**
@@ -202,18 +222,18 @@ class Notify {
 				if (is_string($params)) {
 					$params = array('cmd' => $params);
 				}
-				system('which ' . $params['cmd'], $return);
+				exec('which ' . $params['cmd'], $_, $return);
 				if (!$return) {
 					Notify::$method = $method;
 					if(!empty($params['statuses'])) {
-						Notify::$statuses = $statuses;
+						Notify::$statuses = $params['statuses'];
 					}
 					return $method;
 				}
 			}
 		} else {
-				Notify::$method = 'Log';
-				return 'Log';
+			Notify::$method = 'Log';
+			return 'Log';
 		}
 		return false;
 	}
@@ -231,7 +251,7 @@ class Notify {
  * @access protected
  */
 	static protected function _messageDebug($img, $title, $message, $priority = 0) {
-		debug(func_get_args());
+		debug(func_get_args()); //@ignore
 		return func_get_args();
 	}
 
@@ -254,6 +274,8 @@ class Notify {
 		}
 		if ($message) {
 			$cmd .= " -m \"$message\"";
+		} else {
+			$cmd .= ' -m ""';
 		}
 		if ($title) {
 			$cmd .= " \"$title\"";
@@ -277,7 +299,9 @@ class Notify {
 		if (!$Object) {
 			$Object = new Object();
 		}
-		$Object->log(str_replace("\n", ' ', $title . ':' . $message), 'autotest');
+		$file = 'notify' . Inflector::slug(microtime());
+		$Object->log($title . ':' . $message, $file);
+		return LOGS . $file . '.log';
 	}
 
 /**
@@ -294,6 +318,8 @@ class Notify {
  */
 	static protected function _messageNotifySend($img, $title, $message, $priority = 0) {
 		$cmd = 'notify-send';
+		$cmd .= ' -u normal';
+		$cmd .= ' -c cakeNotice';
 		if ($img) {
 			$cmd .= ' -i ' . $img;
 		}
@@ -301,6 +327,10 @@ class Notify {
 			$cmd .= " \"$title\"";
 		}
 		if ($message) {
+			if (strlen($message) > 140) {
+				$file = Notify::_messageLog($img, $title, $message, $priority);
+				$message = '<a href="file://' . $file . '">' . $message . '</a>';
+			}
 			$cmd .= " \"$message\"";
 		}
 		shell_exec($cmd);

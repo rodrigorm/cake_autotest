@@ -1,21 +1,19 @@
 <?php
 /**
- * Short description for autotest.php
+ * A shell for monitoring a folder and automatically checking if changes pass test cases/sanity/syntax checks
  *
- * Long description for autotest.php
+ * PHP version 5
  *
- * PHP version 4 and 5
- *
- * Copyright (c) 2009, Andy Dawson
+ * Copyright (c) 2009, Rodrigo Moyle
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
  * @filesource
- * @copyright     Copyright (c) 2009, Andy Dawson
- * @link          www.ad7six.com
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors.shells
+ * @copyright     Copyright (c) 2009, Rodrigo Moyle
+ * @link          blog.rodrigorm.com.br
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  * @since         v 1.0 (22-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
@@ -29,8 +27,8 @@ App::import('Vendor', 'Autotest.Notify');
  * Hooks class
  *
  * @uses
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors.shells
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  */
 class Hooks {
 	const all_good    = 'all_good';
@@ -43,40 +41,32 @@ class Hooks {
 	const waiting     = 'waiting';
 	const green       = 'green';
 	const red         = 'red';
-
-/**
- * construct method
- *
- * @return void
- * @access private
- */
-	private function __construct() {}
 }
 
 /**
  * AutoTestShell class
  *
  * @uses          Shell
- * @package       cake_autotest
- * @subpackage    cake_autotest.vendors.shells
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  */
 class AutoTestShell extends Shell {
 
 /**
- * last_mtime property
+ * lastMTime property
  *
  * @var mixed null
  * @access public
  */
-	public $last_mtime    = null;
+	public $lastMTime = null;
 
 /**
- * files_to_test property
+ * filesToTest property
  *
  * @var array
  * @access public
  */
-	public $files_to_test = array();
+	public $filesToTest = array();
 
 /**
  * results property
@@ -84,12 +74,12 @@ class AutoTestShell extends Shell {
  * @var mixed null
  * @access public
  */
-	public $results       = null;
+	public $results = null;
 
 /**
  * Enter Description Here
  */
-	static $hooks      = array();
+	static $hooks = array();
 
 /**
  * fails property
@@ -108,13 +98,25 @@ class AutoTestShell extends Shell {
 	public $settings = array(
 		'interval' => 0.05, // 0.05 minutes = every 3s
 		'debug' => false,
-		'ignorePatterns' => array(
-			'/index\.php/',
-			'/(config|locale|tmp|webroot)\//'
-		),
+		'excludePattern' => '@(index\.php|[\\\/](config|locale|tmp|webroot)[\\\/])@',
 		'notify' => null,
-		'checkAllOnStart' => true
+		'checkAllOnStart' => true,
+		'mode' => null
 	);
+
+	function initialize() {
+		if (file_exists('config' . DS . 'auto_test.php')) {
+			include('config' . DS . 'auto_test.php');
+			if (!empty($config)) {
+				$this->settings = am($this->settings, $config);
+			}
+		} elseif (file_exists(APP . 'config' . DS . 'auto_test.php')) {
+			include(APP . 'config' . DS . 'auto_test.php');
+			if (!empty($config)) {
+				$this->settings = am($this->settings, $config);
+			}
+		}
+	}
 
 /**
  * main method
@@ -123,12 +125,14 @@ class AutoTestShell extends Shell {
  * @access public
  */
 	function main() {
-		App::import('Core', 'Folder');
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
 		}
 		if (!empty($this->params['notify'])) {
 			$this->settings['notify'] = $this->params['notify'];
+		}
+		if (!empty($this->params['mode'])) {
+			$this->settings['mode'] = $this->params['mode'];
 		}
 
 		Notify::$method = $this->settings['notify'];
@@ -199,50 +203,53 @@ class AutoTestShell extends Shell {
  */
 	function _runTests() {
 		$this->_hook(Hooks::run_command);
-		$this->files_to_test = $this->_findFiles();
-		if (!$this->files_to_test) {
-			return;
+		if (!$this->filesToTest) {
+			$this->filesToTest = $this->_findFiles();
+			if (!$this->filesToTest) {
+				return;
+			}
 		}
 
 		$this->results = array(
-			'complete' => array(),
+			'passed' => array(),
 			'skipped' => array(),
 			'failed' => array(),
+			'unknown' => array(),
 		);
-		foreach($this->files_to_test as $file) {
+		foreach($this->filesToTest as $i => $file) {
 			$result = $this->_runTest($file);
+			$shortFile = str_replace($this->params['working'] . DS, '', $file);
 			if (strpos($result, '✔')) {
-				$this->results['complete'][$file] = '✔';//$result;
+				$this->results['passed'][$shortFile] = '✔';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '❯')) {
-				$this->results['skipped'][$file] = '❯';//$result;
+				$this->results['skipped'][$shortFile] = '❯';//$result;
 				unset($this->fails[$file]);
 			} elseif (strpos($result, '✘')) {
-				$this->results['failed'][$file] = '✘';//$result;
+				$this->results['failed'][$shortFile] = '✘';//$result;
 				$this->fails[$file] = $file;
 			} else {
-				$this->results['unknown'][$file] = '?';//$result;
+				$this->results['unknown'][$shortFile] = '?';//$result;
 			}
 			$this->out($result);
 		}
 		$this->_hook(Hooks::ran_command);
 
 		$total = -count($this->results['skipped']);
-		foreach(array('complete', 'skipped', 'failed', 'unknown') as $type) {
+		foreach(array('passed', 'skipped', 'failed', 'unknown') as $type) {
 			if (empty($this->results[$type])) {
+				$this->results[$type . 'Count'] = 0;
 				continue;
 			}
 			$total += count($this->results[$type]);
-			$this->results[$type . ' files'] = $this->results[$type];
-			$this->results[$type] = count($this->results[$type]);
+			$this->results[$type . 'Count'] = count($this->results[$type]);
 		}
-		$this->results['total'] = $total;
+		$this->results['totalCount'] = $total;
 
 		if (empty($this->results['failed']) && empty($this->results['unknown'])) {
 			$this->_hook(Hooks::green, array_filter($this->results));
 		} else {
-			unset ($this->results['complete files']);
-			$this->_hook(Hooks::red, (int)$this->results['failed'], array_filter($this->results));
+			$this->_hook(Hooks::red, (int)$this->results['failedCount'], array_filter($this->results));
 		}
 	}
 
@@ -254,7 +261,11 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _runTest($file) {
-		$out = exec($this->paths['console'].' -app '.$this->params['working'].' repo checkFile ' . $file, $_, $return);
+		$cmd = $this->paths['console'] . ' -app '. $this->params['working'] . ' repo checkFile ' . $file . ' -q -noclear';
+		if ($this->settings['mode']) {
+			$cmd .= ' -mode ' . $this->settings['mode'];
+		}
+		$out = exec($cmd, $_, $return);
 		return implode($_, "\n");
 	}
 
@@ -270,7 +281,7 @@ class AutoTestShell extends Shell {
 			sleep($this->settings['interval'] * 60);
 			$changedFiles = $this->_findFiles();
 			$files = array_unique(am($changedFiles, array_values((array)$this->fails)));
-			$this->files_to_test = $files;
+			$this->filesToTest = $files;
 		} while (!$changedFiles);
 	}
 
@@ -281,7 +292,7 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _allGood() {
-		return empty($this->files_to_test);
+		return empty($this->fails);
 	}
 
 /**
@@ -306,8 +317,9 @@ class AutoTestShell extends Shell {
  * @access protected
  */
 	function _reset() {
-		$this->files_to_test = null;
-		$this->last_mtime = null;
+		$this->fails = null;
+		$this->filesToTest = null;
+		$this->lastMTime = null;
 
 		$this->_hook(Hooks::reset);
 	}
@@ -361,7 +373,6 @@ class AutoTestShell extends Shell {
 		if (empty(AutoTestShell::$hooks[$hook])) {
 			return false;
 		}
-
 		foreach (AutoTestShell::$hooks[$hook] as $callback) {
 			call_user_func_array($callback, $params);
 		}
@@ -379,16 +390,21 @@ class AutoTestShell extends Shell {
 			$dir = $this->params['working'];
 		}
 
+		if (!$this->lastMTime && !$this->settings['checkAllOnStart']) {
+			$this->lastMTime = time();
+			return array();
+		}
 		if (DS === '\\') {
+			App::import('Core', 'Folder');
 			if (empty($this->Folder)) {
 				$this->Folder = new Folder($dir);
 			}
 			$files = $this->Folder->findRecursive('.*\.php$');
-			if ($this->last_mtime) {
+			if ($this->lastMTime) {
 				$lastMTime = 0;
 				foreach ($files as $key => $file) {
 					$time = filemtime($file);
-					if (!empty($this->last_mtime) && $time <= $this->last_mtime) {
+					if (!empty($this->lastMTime) && $time <= $this->lastMTime) {
 						unset ($files[$key]);
 						continue;
 					}
@@ -396,36 +412,47 @@ class AutoTestShell extends Shell {
 						$lastMTime = $time;
 					}
 				}
-				if ($lastMTime > $this->last_mtime) {
-					$this->last_mtime = $time;
+				if ($lastMTime > $this->lastMTime) {
+					$this->lastMTime = $time;
 				}
 			} elseif (!$this->settings['checkAllOnStart']) {
 				$files = array();
 			}
 		} else {
 			$suffix = '';
-			$sinceLast = time() - $this->last_mtime;
-			if ($this->last_mtime) {
-				$suffix = ' -mmin ' . ceil($sinceLast / 60);
+			if ($this->lastMTime) {
+				$suffix = $this->_findSuffix();
 			}
 			$cmd = 'find ' . $dir . ' ! -ipath "*.svn*" \
 			! -ipath "*.git*" ! -iname "*.git*" ! -ipath "*/tmp/*" ! -ipath "*webroot*" \
 			! -ipath "*Zend*" ! -ipath "*simpletest*" ! -ipath "*firephp*" \
 			! -iname "*jquery*" ! -ipath "*Text*" -name "*.php" -type f' . $suffix;
 			exec($cmd, $files);
-			$this->last_mtime = time();
-		}
-		if (!empty($this->settings['ignorePatterns'])) {
-			foreach ($files as $key => $file) {
-				foreach ($this->settings['ignorePatterns'] as $ignore) {
-					if (preg_match($ignore, $file)) {
-						unset($files[$key]);
-					}
-				}
-			}
+			$this->lastMTime = time();
 		}
 		$files = array_unique($files);
 		sort($files);
+		foreach($files as $key => $file) {
+			if (!empty($this->settings['excludePattern']) && preg_match($this->settings['excludePattern'], $file)) {
+				unset($files[$key]);
+			}
+		}
 		return array_values($files);
+	}
+
+	function _findSuffix() {
+		static $system = null;
+		if (is_null($system)) {
+			$system = exec('uname -s');
+		}
+
+		if ($system == 'Darwin') {
+			$tmpfile = TMP . 'auto_test_find_newer';
+			touch($tmpfile, $this->lastMTime);
+			return ' -cnewer ' . $tmpfile;
+		} else {
+			$sinceLast = time() - $this->lastMTime;
+			return ' -mmin ' . $sinceLast / 60;
+		}
 	}
 }

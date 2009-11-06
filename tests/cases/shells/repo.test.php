@@ -1,12 +1,10 @@
 <?php
-/* SVN FILE: $Id$ */
-
 /**
  * Short description for repo.test.php
  *
  * Long description for repo.test.php
  *
- * PHP versions 4 and 5
+ * PHP versions 5
  *
  * Copyright (c) 2009, Andy Dawson
  *
@@ -16,12 +14,9 @@
  * @filesource
  * @copyright     Copyright (c) 2009, Andy Dawson
  * @link          www.ad7six.com
- * @package       base
- * @subpackage    base.tests.cases.shells
+ * @package       autotest
+ * @subpackage    autotest.tests.cases.shells
  * @since         v 1.0 (06-Jul-2009)
- * @version       $Revision$
- * @modifiedby    $LastChangedBy$
- * @lastmodified  $Date$
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 App::import('Core', 'Shell');
@@ -39,8 +34,10 @@ if (!class_exists('ShellDispatcher')) {
 }
 
 if (!class_exists('RepoShell')) {
+	App::import('Shell', 'Autotest.Repo');
 	App::import('Shell', 'Repo');
-	include_once('vendors/shells/repo.php'); //temp
+	App::import('Task', 'Autotest.Find');
+	App::import('Task', 'Find');
 }
 
 /**
@@ -76,7 +73,10 @@ class TestRepoShell extends RepoShell {
 			'app' => APP
 		), $params);
 		$this->initialize();
+		$this->loadTasks();
+		$this->Find->params =& $this->params;
 		unset($this->settings['rules']['failsTests']);
+		$this->settings['skipTests'] = false;
 		$this->_reset();
 
 	}
@@ -188,12 +188,14 @@ class RepoShellTest extends CakeTestCase {
 
 		ksort($keys);
 		ksort($rules);
-
+		if ($file) {
+			$file .= " :\n";
+		}
 		$this->_reporter->_test_stack[] = 'test' . Inflector::classify(implode($rules, ', '));
-		$this->assertIdentical($rules, $keys);
+		$this->assertIdentical($rules, $keys, "\n" . $file . 'Expected Errors (' . implode($rule, ', ') . ') do not match results (' . implode($keys, ', ') . ')');
 
 		if ($isError) {
-			$this->assertTrue($this->Repo->returnValue);
+			$this->assertTrue($this->Repo->returnValue, $file .'Test case was expected to fail, but it passed');
 		}
 		array_pop($this->_reporter->_test_stack);
 	}
@@ -207,6 +209,7 @@ class RepoShellTest extends CakeTestCase {
 	function startTest() {
 		$this->Repo = new TestRepoShell();
 		$this->Repo->params['working'] = dirname(dirname(dirname(__FILE__))) . DS . 'repo_test_files' . DS;
+		$this->Repo->settings['excludePattern'] = false;
 		$this->Folder = new Folder(TESTS . 'repo_test_files');
 	}
 
@@ -219,6 +222,7 @@ class RepoShellTest extends CakeTestCase {
  * @access public
  */
 	function testListFiles() {
+		$this->Repo->params['excludePattern'] = false;
 		$files = $this->Repo->listFiles();
 		$this->assertTrue($files);
 		foreach($files as $file) {
@@ -279,7 +283,7 @@ class RepoShellTest extends CakeTestCase {
 		$path = $this->_path('multiple_debug.php');
 		$this->Repo->reset();
 		$this->Repo->checkFile($path);
-		$this->assertIdentical(count($this->Repo->errors[$path]['debug']), 2);
+		$this->assertIdentical(count($this->Repo->errors[$path]['debug']), 2, 'multiple_debug.php Multiple errors expected');
 
 		$path = $this->_path('multiple_failing_rules.php');
 		$this->Repo->reset();
@@ -387,6 +391,12 @@ class RepoShellTest extends CakeTestCase {
 		$this->assertEqual($result, $expected);
 	}
 
+/**
+ * testMapHelperToTest method
+ *
+ * @return void
+ * @access public
+ */
 	function testMapHelperToTest() {
 		$expected = array(
 			'app',
@@ -479,7 +489,7 @@ class RepoShellTest extends CakeTestCase {
 			$this->Repo->reset();
 			$this->Repo->checkFile($this->_path($testFile));
 			if ($expectPass) {
-				$this->assertIdentical($this->Repo->returnValue, 0);
+				$this->assertIdentical($this->Repo->returnValue, 0, $testFile . ":\n didn't pass but was expected to");
 			} else {
 				$this->assertFailedRules($rule);
 			}
