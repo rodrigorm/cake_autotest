@@ -105,13 +105,13 @@ class AutopilotShell extends Shell {
 	);
 
 	function initialize() {
-		if (file_exists('config' . DS . 'auto_test.php')) {
-			include('config' . DS . 'auto_test.php');
+		if (file_exists('config' . DS . 'auto_pilot.php')) {
+			include('config' . DS . 'auto_pilot.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
-		} elseif (file_exists(APP . 'config' . DS . 'auto_test.php')) {
-			include(APP . 'config' . DS . 'auto_test.php');
+		} elseif (file_exists(APP . 'config' . DS . 'auto_pilot.php')) {
+			include(APP . 'config' . DS . 'auto_pilot.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
@@ -447,7 +447,7 @@ class AutopilotShell extends Shell {
 		}
 
 		if ($system == 'Darwin') {
-			$tmpfile = TMP . 'auto_test_find_newer';
+			$tmpfile = TMP . 'auto_pilot_find_newer';
 			touch($tmpfile, $this->lastMTime);
 			return ' -cnewer ' . $tmpfile;
 		} else {

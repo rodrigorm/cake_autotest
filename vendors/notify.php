@@ -268,7 +268,7 @@ class Notify {
  * @access protected
  */
 	static protected function _messageGrowlnotify($img, $title, $message, $priority = 0) {
-		$cmd = 'growlnotify -n "CakePHP AutoTest Shell" -p ' . $priority;
+		$cmd = 'growlnotify -n "CakePHP Autopilot Shell" -p ' . $priority;
 		if ($img) {
 			$cmd .= ' --image ' . $img;
 		}

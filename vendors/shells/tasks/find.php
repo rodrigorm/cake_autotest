@@ -190,7 +190,6 @@ class FindTask extends Shell {
 		return $out;
 	}
 
-
 /**
  * log method
  *
