@@ -308,6 +308,7 @@ class Notify {
  * messageNotifySend method
  *
  * Send a message using notify-send
+ * Set a timeout of 10s so that messages don't end up creating a que that will never finish
  *
  * @param mixed $img
  * @param mixed $title
@@ -318,6 +319,7 @@ class Notify {
  */
 	static protected function _messageNotifySend($img, $title, $message, $priority = 0) {
 		$cmd = 'notify-send';
+		$cmd .= ' -t 10000';
 		$cmd .= ' -u normal';
 		$cmd .= ' -c cakeNotice';
 		if ($img) {

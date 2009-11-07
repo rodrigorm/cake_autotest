@@ -25,8 +25,8 @@
  * @filesource
  * @copyright     Copyright (c) 2009, Andy Dawson
  * @link          www.ad7six.com
- * @package       base
- * @subpackage    base.vendors.shells
+ * @package       autotest
+ * @subpackage    autotest.vendors.shells
  * @since         v 1.0 (03-Jul-2009)
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
@@ -486,6 +486,7 @@ class RepoShell extends Shell {
 			$this->out('✔');
 		} else {
 			$this->out('✘');
+			$this->err(Debugger::trimPath($file) . ' ' . '✘');
 		}
 		$this->_printErrors(1);
 	}
