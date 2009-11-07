@@ -319,9 +319,8 @@ class Notify {
  */
 	static protected function _messageNotifySend($img, $title, $message, $priority = 0) {
 		$cmd = 'notify-send';
-		$cmd .= ' -t 10000';
 		$cmd .= ' -u normal';
-		$cmd .= ' -c cakeNotice';
+		$cmd .= ' -c confirmation';
 		if ($img) {
 			$cmd .= ' -i ' . $img;
 		}
