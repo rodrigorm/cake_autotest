@@ -18,9 +18,6 @@
  * @license       http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 
-/**
- * Ensure the Notify vendor loads irrespective of how it's been included
- */
 App::import('Vendor', 'Autotest.Notify');
 
 /**
@@ -104,6 +101,17 @@ class AutopilotShell extends Shell {
 		'mode' => null
 	);
 
+/**
+ * initialize method
+ *
+ * check for the existance of a config/autopilot.php file - if found merge
+ * $config with settings
+ *
+ * Of the autopilot mode has ben set to false - do nothing further
+ *
+ * @return void
+ * @access public
+ */
 	function initialize() {
 		if (file_exists('config' . DS . 'autopilot.php')) {
 			include('config' . DS . 'autopilot.php');
@@ -116,30 +124,54 @@ class AutopilotShell extends Shell {
 				$this->settings = am($this->settings, $config);
 			}
 		}
+		if ($this->settings['mode'] === false) {
+			$this->out('Autopilot has been disabled');
+			$this->_stop();
+		}
 	}
 
 /**
  * main method
  *
+ * Check for the existance of a tmp/autopilot_running file. If it exists - and is less than an hour
+ * old do not do anything to prevent the possibility of running autotest several times in parallel
+ * on the same files. If the file is more than an hour old delete it and continue.
+ * Delete the tmp/autopilot_stop file if it exists and being autopilot test/checking process.
+ *
  * @return void
  * @access public
  */
 	function main() {
+		if (file_exists(TMP . 'autopilot_running')) {
+			if (filemtime(TMP . 'autopilot_running') > (time() - 60*60)) {
+				$this->out('tmp/autopilot_running file exists - another instance of autopilot is already running');
+				$this->out('or did not finish cleanly. Delete this file to allow autopilot to run');
+				$this->out('Stopping');
+				$this->_stop();
+			}
+			$this->out('stale tmp/autopilot_running file found - deleting');
+			unlink(TMP . 'autopilot_running');
+		}
+		if (file_exists(TMP . 'autopilot_stop')) {
+			unlink(TMP . 'autopilot_stop');
+		}
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
 		}
 		if (!empty($this->params['notify'])) {
 			$this->settings['notify'] = $this->params['notify'];
 		}
-		$suffix = '';
 		if (!empty($this->params['mode'])) {
 			$this->settings['mode'] = $this->params['mode'];
-			$suffix = ' in ' . $this->params['mode'] . ' mode';
+		}
+		$suffix = '';
+		if (!empty($this->settings['mode'])) {
+			$suffix = ' (' . $this->settings['mode'] . ' mode)';
 		}
 
 		Notify::$method = $this->settings['notify'];
 		$this->addHooks();
-		Notify::message('Autopilot Starting', 'in ' . $this->params['working'] . $suffix, 0, false);
+		Notify::message('Autopilot Starting', 'in ' . APP_DIR . $suffix, 0, false);
 		$this->buildPaths();
 		$this->run();
 	}
@@ -169,17 +201,35 @@ class AutopilotShell extends Shell {
 /**
  * run method
  *
+ * Touch the tmp/autopilot_runnint file to prevent multiple instances of autopilot being launched
+ * for the same project
+ * Check for the existance of a tmp/autopilot_stop file to cease processing
+ *
  * @return void
  * @access public
  */
 	function run() {
 		$this->_hook(Hooks::initialize);
 		do {
+			touch(TMP . 'autopilot_running');
 			$this->_getToGreen();
 			$this->_rerunAllTests();
 			$this->_waitForChanges();
-		} while (true);
+		} while (!file_exists(TMP . 'autopilot_stop'));
 		$this->_hook(Hooks::quit);
+		unlink(TMP . 'autopilot_running');
+	}
+
+/**
+ * stop method
+ *
+ * Create a tmp/autopilot_stop file - which is checked for during execution to halt processing
+ *
+ * @return void
+ * @access public
+ */
+	function stop() {
+		touch(TMP . 'autopilot_stop');
 	}
 
 /**
@@ -194,7 +244,7 @@ class AutopilotShell extends Shell {
 			if (!$this->_allGood()) {
 				$this->_waitForChanges();
 			}
-		} while (!$this->_allGood());
+		} while (!$this->_allGood() && !file_exists(TMP . 'autopilot_stop'));
 	}
 
 /**
@@ -284,7 +334,7 @@ class AutopilotShell extends Shell {
 			$changedFiles = $this->_findFiles();
 			$files = array_unique(am($changedFiles, array_values((array)$this->fails)));
 			$this->filesToTest = $files;
-		} while (!$changedFiles);
+		} while (!$changedFiles && !file_exists(TMP . 'autopilot_stop'));
 	}
 
 /**
