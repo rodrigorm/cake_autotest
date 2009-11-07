@@ -377,6 +377,9 @@ class RepoShell extends Shell {
 						'passesTests' => $this->settings['rules']['passesTests']
 					);
 					break;
+				case 'quality':
+					unset($this->settings['rules']['passesTests']);
+					break;
 				default:
 					$rules = $this->settings['rules'];
 					$this->settings['rules'] = array();

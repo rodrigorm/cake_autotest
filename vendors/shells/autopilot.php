@@ -105,13 +105,13 @@ class AutopilotShell extends Shell {
 	);
 
 	function initialize() {
-		if (file_exists('config' . DS . 'auto_pilot.php')) {
-			include('config' . DS . 'auto_pilot.php');
+		if (file_exists('config' . DS . 'autopilot.php')) {
+			include('config' . DS . 'autopilot.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
-		} elseif (file_exists(APP . 'config' . DS . 'auto_pilot.php')) {
-			include(APP . 'config' . DS . 'auto_pilot.php');
+		} elseif (file_exists(APP . 'config' . DS . 'autopilot.php')) {
+			include(APP . 'config' . DS . 'autopilot.php');
 			if (!empty($config)) {
 				$this->settings = am($this->settings, $config);
 			}
@@ -131,13 +131,15 @@ class AutopilotShell extends Shell {
 		if (!empty($this->params['notify'])) {
 			$this->settings['notify'] = $this->params['notify'];
 		}
+		$suffix = '';
 		if (!empty($this->params['mode'])) {
 			$this->settings['mode'] = $this->params['mode'];
+			$suffix = ' in ' . $this->params['mode'] . ' mode';
 		}
 
 		Notify::$method = $this->settings['notify'];
 		$this->addHooks();
-		Notify::message('Autopilot Starting', 'in ' . $this->params['working'], 0, false);
+		Notify::message('Autopilot Starting', 'in ' . $this->params['working'] . $suffix, 0, false);
 		$this->buildPaths();
 		$this->run();
 	}
@@ -447,7 +449,7 @@ class AutopilotShell extends Shell {
 		}
 
 		if ($system == 'Darwin') {
-			$tmpfile = TMP . 'auto_pilot_find_newer';
+			$tmpfile = TMP . 'autopilot_find_newer';
 			touch($tmpfile, $this->lastMTime);
 			return ' -cnewer ' . $tmpfile;
 		} else {
