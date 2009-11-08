@@ -284,27 +284,6 @@ class Notify {
 	}
 
 /**
- * messageLog method
- *
- * @param mixed $img
- * @param mixed $title
- * @param mixed $message
- * @param int $priority 0
- * @return void
- * @access protected
- */
-	static protected function _messageLog($img, $title, $message, $priority = 0) {
-		static $Object;
-
-		if (!$Object) {
-			$Object = new Object();
-		}
-		$file = 'notify' . Inflector::slug(microtime());
-		$Object->log($title . ':' . $message, $file);
-		return LOGS . $file . '.log';
-	}
-
-/**
  * messageNotifySend method
  *
  * Send a message using notify-send
@@ -328,10 +307,6 @@ class Notify {
 			$cmd .= " \"$title\"";
 		}
 		if ($message) {
-			if (strlen($message) > 140) {
-				$file = Notify::_messageLog($img, $title, $message, $priority);
-				$message = '<a href="file://' . $file . '">' . $message . '</a>';
-			}
 			$cmd .= " \"$message\"";
 		}
 		shell_exec($cmd);
