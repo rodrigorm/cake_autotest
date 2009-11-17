@@ -98,6 +98,7 @@ class AutopilotShell extends Shell {
 		'excludePattern' => '@(index\.php|[\\\/](config|locale|tmp|webroot)[\\\/])@',
 		'notify' => null,
 		'checkAllOnStart' => true,
+		'pidDir' => '/var/run/autopilot/',
 		'mode' => null
 	);
 
@@ -142,18 +143,9 @@ class AutopilotShell extends Shell {
  * @access public
  */
 	function main() {
-		if (file_exists(TMP . 'autopilot_running')) {
-			if (filemtime(TMP . 'autopilot_running') > (time() - 60*60)) {
-				$this->out('tmp/autopilot_running file exists - another instance of autopilot is already running');
-				$this->out('or did not finish cleanly. Delete this file to allow autopilot to run');
-				$this->out('Stopping');
-				$this->_stop();
-			}
-			$this->out('stale tmp/autopilot_running file found - deleting');
-			unlink(TMP . 'autopilot_running');
-		}
-		if (file_exists(TMP . 'autopilot_stop')) {
-			unlink(TMP . 'autopilot_stop');
+		if (!$this->_registerPid()) {
+			$this->out('Unable to register Pid');
+			$this->_stop();
 		}
 		if (file_exists($this->params['working'] . DS . '.autotest')) {
 			include($this->params['working'] . DS . '.autotest');
@@ -506,5 +498,37 @@ class AutopilotShell extends Shell {
 			$sinceLast = time() - $this->lastMTime;
 			return ' -mmin ' . $sinceLast / 60;
 		}
+	}
+
+/**
+ * registerPid method
+ *
+ * @return void
+ * @access protected
+ */
+	function _registerPid() {
+		if (!is_dir($this->settings['pidDir'])) {
+			new Folder($this->settings['pidDir'], true);
+			if (!is_dir($this->settings['pidDir'])) {
+				trigger_error('unable to create pid directory ' . $this->settings['pidDir']);
+				return false;
+			}
+		}
+		$pidFile = $this->settings['pidDir'] . Inflector::slug($this->params['working']) . '.pid';
+		if (file_exists($pidFile)) {
+			$this->out('Existing PID file found: ' . $pidFile);
+			$pid = trim(file_get_contents($pidFile));
+			$stillRunning = posix_kill($pid, 0);
+			if ($stillRunning) {
+				$this->out("Autopilot already running (PID $pid)");
+				return false;
+			} else {
+				$this->out("Process $pid nolonger running, ignoring existing PID file");
+			}
+		}
+		$pid = posix_getpid();
+		$File = new File($pidFile);
+		$File->write($pid);
+		return true;
 	}
 }
