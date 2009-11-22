@@ -163,7 +163,7 @@ class RepoShell extends Shell {
 				'message' => false,
 			),
 			'debug' => array(
-				'rule' => '/(?![\r\n] \*)[^\r\n]*(?!function[^\r\n]*)debug\s*\((?![^\r\n]*@ignore)/s',
+				'rule' => '/(?!function[^\r\n]*)(print_r|var_dump|debug)\s*\((?![^\r\n]*@ignore)/s',
 			),
 			'leadingWhitespace' => array(
 				'singleMatch' => true,
@@ -385,8 +385,8 @@ class RepoShell extends Shell {
 				default:
 					$rules = $this->settings['rules'];
 					$this->settings['rules'] = array();
-					foreach (explode($this->params['mode'], ',') as $rule) {
-						if (isset($rules['rule'])) {
+					foreach (explode(',', $this->params['mode']) as $rule) {
+						if (isset($rules[$rule])) {
 							$this->settings['rules'][$rule] = $rules[$rule];
 						}
 					}
