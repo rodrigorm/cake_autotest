@@ -597,7 +597,7 @@ class RepoShell extends Shell {
  */
 	function linkPreCommit() {
 		$source = realpath(dirname(dirname(__FILE__))) . DS . 'pre-commit';
-		$files = am($this->_find('pre-commit.sample'), $this->_find('pre-commit'));
+		$files = am($this->Find->files('pre-commit.sample', false), $this->Find->files('pre-commit', false));
 		$files = array_unique($files);
 		foreach($files as &$file) {
 			$file = str_replace('.sample', '', $file);
@@ -632,21 +632,18 @@ class RepoShell extends Shell {
 			}
 		} else {
 			foreach($files as $file) {
+				if (!empty($this->params['dry'])) {
+					$this->out($file. ' identified');
+					continue;
+				}
 				rename($file, $file . '.bak');
 				if (symlink($source, $file)) {
-					$this->out($file, ' link created');
+					$this->out($file. ' (link) created');
+				} elseif (copy($source, $file)) {
+					$this->out($file. ' created');
 				} else {
-					$this->out($file, ' link couldn\'t be created');
+					$this->out($file. ' couldn\'t be created');
 				}
-			}
-			if (!empty($this->params['dry'])) {
-				$this->out($file. ' identified');
-			} elseif (symlink($source, $file)) {
-				$this->out($file. ' (link) created');
-			} elseif (copy($source, $file)) {
-				$this->out($file. ' created');
-			} else {
-				$this->out($file. ' couldn\'t be created');
 			}
 		}
 	}
