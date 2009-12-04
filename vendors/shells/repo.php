@@ -898,7 +898,7 @@ class RepoShell extends Shell {
 			$case = preg_replace('@.*cake[\\\/](libs[\\\/])?@', '', $case);
 			return array($type, $case, CAKE_TESTS . 'cases' . DS . $libs . $case . '.test.php');
 		}
-		preg_match('@(.*[\\\/])(?:(?:config|controllers|locale|models|tests|vendors|views)[\\\/])@', $case, $matches);
+		preg_match('@(.*[\\\/])(?:(?:config|controllers|libs|locale|models|tests|vendors|views)[\\\/])@', $case, $matches);
 		$base = '';
 		if ($matches) {
 			$base = $matches[1];
