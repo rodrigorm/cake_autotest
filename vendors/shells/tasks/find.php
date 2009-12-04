@@ -53,7 +53,7 @@ class FindTask extends Shell {
 		if (DS == '\\') {
 			$this->settings['findCmd'] = false;
 		} else {
-			$this->settings['findCmd'] = 'find :working ! -iwholename "*.git*" ! -ipath "*.svn*" -type f';
+			$this->settings['findCmd'] = 'find :working ! -iwholename "*.git*" ! -iwholename "*.svn*" -type f';
 		}
 	}
 
